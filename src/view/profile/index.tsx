@@ -86,16 +86,6 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="max-w-xl mx-auto p-8 text-center">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <p className="text-yellow-800">You must be logged in to view your profile.</p>
-        </div>
-      </div>
-    );
-  }
-
   if (profileError) {
     return (
       <div className="max-w-xl mx-auto p-8 text-center">

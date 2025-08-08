@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import Image from 'next/image';
 import { TopicItemProps } from "@/types/topic";
-import { ChevronUp, MessageSquare, Share, BookmarkPlus, MoreHorizontal, Heart } from "lucide-react";
+import { MessageSquare, Share, BookmarkPlus, MoreHorizontal, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/utils/supabase/client";
 
@@ -33,7 +33,14 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
   }, [topic?.id, user?.id]);
 
   const handleLike = async () => {
-    if (!user?.id || likeLoading) return;
+    if (!user?.id) {
+      // Redirect to login if user is not authenticated
+      router.push("/auth/login");
+      return;
+    }
+    
+    if (likeLoading) return;
+    
     setLikeLoading(true);
     try {
       const response = await fetch("/api/topic", {
@@ -119,9 +126,7 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
               ) : (
                 <div className="w-4 h-4 bg-gray-300 rounded-full flex items-center justify-center">
                   <span className="text-xs text-gray-600">
-                    {authorProfile
-                      ? `${authorProfile.first_name?.[0] || ""}${authorProfile.last_name?.[0] || ""}`.toUpperCase()
-                      : topic.author_id?.slice(0, 1).toUpperCase()}
+                    {authorProfile?.first_name?.[0] || authorProfile?.last_name?.[0] || "?"}
                   </span>
                 </div>
               )}
@@ -129,9 +134,9 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
                 className="font-medium hover:underline cursor-pointer"
                 onClick={() => onAuthorClick?.(topic.author_id)}
               >
-                {authorProfile
-                  ? `${authorProfile.first_name}${authorProfile.last_name}`.toLowerCase()
-                  : topic.author_id}
+                {authorProfile?.first_name && authorProfile?.last_name
+                  ? `${authorProfile.first_name} ${authorProfile.last_name}`
+                  : ''}
               </span>
             </div>
             <span>•</span>

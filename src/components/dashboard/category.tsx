@@ -2,7 +2,7 @@
 import { CategoryGridProps } from "@/types/category";
 import { useRouter } from "next/navigation";
 
-export default function CategoryGrid({ categories }: CategoryGridProps) {
+export default function CategoryGrid({ categories, limit }: CategoryGridProps & { limit?: number }) {
   const router = useRouter();
 
   if (!categories.length) {
@@ -16,16 +16,24 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
     );
   }
 
+  // Apply limit and randomize if specified
+  const displayCategories = limit 
+    ? [...categories].sort(() => 0.5 - Math.random()).slice(0, limit)
+    : categories;
+
+  const handleCategoryClick = (categoryId: string) => {
+    // Always navigate to category page
+    router.push(`/category?id=${categoryId}`);
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      {categories.map(category => (
+      {displayCategories.map(category => (
         <button
           key={category.id}
           type="button"
           className="group bg-white rounded-xl border border-gray-200 p-6 hover:shadow-xl transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 text-left relative overflow-hidden"
-          onClick={() => {
-            router.push(`/category?id=${category.id}`);
-          }}
+          onClick={() => handleCategoryClick(category.id)}
           aria-label={`View category ${category.name}`}
         >
           <span

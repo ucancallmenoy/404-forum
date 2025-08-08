@@ -1,10 +1,8 @@
 "use client";
 import { useAuth } from "@/contexts/auth-context";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ForumHeader from "@/components/dashboard/header";
 import ForumNavigation from "@/components/dashboard/navigation";
-import ForumSidebar from "@/components/dashboard/sidebar";
 import CategoryGrid from "@/components/dashboard/category";
 import TopicList from "@/components/dashboard/recent-topic";
 import { useCategories } from "@/hooks/use-categories";
@@ -24,18 +22,60 @@ export default function ForumDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [reloadTopics, setReloadTopics] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/auth/login");
-    }
-  }, [user, loading, router]);
+  // Loading components
+  const LoadingSpinner = () => (
+    <div className="flex justify-center items-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
 
-  if (loading || loadingCategories || loadingTopics) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  const LoadingCard = () => (
+    <div className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+        <div className="flex-1">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-3 bg-gray-200 rounded"></div>
+        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+      </div>
+    </div>
+  );
+
+  // Show initial loading screen when essential data is loading
+  if (loading || loadingCategories) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+            <div className="flex gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-10 bg-gray-200 rounded w-24"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex">
+          <main className="flex-1 px-4 py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {[1, 2, 3, 4, 5].map(i => (
+                <LoadingCard key={i} />
+              ))}
+            </div>
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <LoadingCard key={i} />
+              ))}
+            </div>
+          </main>
+        </div>
+      </div>
+    );
   }
-  if (!user) return null;
-
-  const handleCreateTopic = () => setShowModal(true);
 
   const handleSubmitTopic = async (form: {
     title: string;
@@ -44,6 +84,8 @@ export default function ForumDashboard() {
     is_hot?: boolean;
     is_question?: boolean;
   }) => {
+    if (!user) return;
+    
     const ok = await createTopic({
       ...form,
       author_id: user.id,
@@ -53,33 +95,93 @@ export default function ForumDashboard() {
     }
   };
 
-  const handleSubscribe = () => {
-    alert("Subscribed!");
-  };
-
-  const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategoryId(categoryId);
-  };
-
   const handleAuthorClick = (authorId: string) => {
-  router.push(`/profile?id=${authorId}`);
-};
+    router.push(`/profile?id=${authorId}`);
+  };
 
   const handleRefresh = () => {
-  setReloadTopics(r => !r);
-};
+    setReloadTopics(r => !r);
+  };
 
   const handleViewAllTopics = () => {
     setSelectedCategoryId(undefined);
   };
 
+  // Filter topics based on search query
+  const filteredTopics = topics.filter(topic => 
+    topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    topic.content.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Render content based on active tab
+  const renderContent = () => {
+    // Show loading state for topics when switching categories or tabs
+    if (loadingTopics) {
+      return (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5].map(i => (
+              <LoadingCard key={i} />
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <LoadingCard key={i} />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'Categories':
+        return (
+          <CategoryGrid 
+            categories={categories}
+          />
+        );
+      case 'Following':
+        return (
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <p className="text-gray-500">Following feature coming soon!</p>
+          </div>
+        );
+      case 'My Topics':
+        const userTopics = user 
+          ? filteredTopics.filter(topic => topic.author_id === user.id)
+          : [];
+        return (
+          <TopicList
+            topics={userTopics}
+            onAuthorClick={handleAuthorClick}
+            onRefresh={handleRefresh}
+            onViewAllTopics={handleViewAllTopics}
+            currentUserId={user?.id}
+            title="My Topics"
+          />
+        );
+      default: // 'All Topics'
+        return (
+          <>
+            <CategoryGrid 
+              categories={categories}
+              limit={5}
+            />
+            <TopicList
+              topics={filteredTopics}
+              onAuthorClick={handleAuthorClick}
+              onRefresh={handleRefresh}
+              onViewAllTopics={handleViewAllTopics}
+              currentUserId={user?.id}
+            />
+          </>
+        );
+    }
+  };
+
   return (
     <>
       <div className="min-h-screen bg-gray-50">
-        <ForumHeader 
-          onCreateTopic={handleCreateTopic}
-          onSubscribe={handleSubscribe}
-        />
         <ForumNavigation
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -90,25 +192,12 @@ export default function ForumDashboard() {
           setSearchQuery={setSearchQuery}
         />
         <div className="flex">
-          <ForumSidebar 
-            categories={categories}
-            onCategoryClick={handleCategoryClick}
-          />
           <main className="flex-1 px-4 py-6">
-            <CategoryGrid 
-              categories={categories}
-              onCategoryClick={handleCategoryClick}
-            />
-            <TopicList
-              topics={topics}
-              onAuthorClick={handleAuthorClick}
-              onRefresh={handleRefresh}
-              onViewAllTopics={handleViewAllTopics}
-            />
+            {renderContent()}
           </main>
         </div>
       </div>
-      {showModal && (
+      {showModal && user && (
         <ForumCreateTopicModal
           categories={categories}
           onClose={() => setShowModal(false)}

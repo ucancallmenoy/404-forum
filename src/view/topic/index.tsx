@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, MessageSquare, Share, Bookmark } from "lucide-react";
+import { Heart, MessageSquare, Share, Bookmark, Loader2 } from "lucide-react";
 import { useTopics } from "@/hooks/use-topics";
 import { useCreatePost } from "@/hooks/use-create-post";
 import ForumComments from "@/components/dashboard/comments";
@@ -9,14 +9,15 @@ import { useUserProfile } from "@/hooks/use-user-profile";
 import { useAuth } from "@/contexts/auth-context";
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import Link from "next/link";
 
 export default function PostPage() {
   const router = useRouter();
   const params = useSearchParams();
   const topicId = params.get("id");
   const { user } = useAuth();
-  const { topics } = useTopics();
-  const { categories } = useCategories();
+  const { topics, loading: topicsLoading } = useTopics();
+  const { categories, loading: categoriesLoading } = useCategories();
   const topic = useMemo(() => topics.find(t => t.id === topicId), [topics, topicId]);
   const category = useMemo(() => categories.find(c => c.id === topic?.category_id), [categories, topic]);
   const { createPost, loading: posting } = useCreatePost();
@@ -30,6 +31,7 @@ export default function PostPage() {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(topic?.likes ?? 0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const isLoading = topicsLoading || categoriesLoading;
 
   const CommentsSection = useMemo(
     () =>
@@ -42,8 +44,10 @@ export default function PostPage() {
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    
     if (!comment.trim()) return;
-    if (!user) return;
+    
     const ok = await createPost({
       topic_id: topicId!,
       author_id: user.id,
@@ -82,6 +86,11 @@ export default function PostPage() {
   };
 
   const handleLikeToggle = async () => {
+    if (!user?.id) {
+      router.push("/auth/login");
+      return;
+    }
+
     if (!topic?.id || !user?.id || likeLoading) return;
     setLikeLoading(true);
 
@@ -129,26 +138,15 @@ export default function PostPage() {
     fetchLikeStatus();
   }, [topic?.id, user?.id]);
 
-  if (!topic) {
+
+  if (!topic || isLoading) {
     return (
-      <div className="max-w-2xl mx-auto p-8 text-center">
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <p className="text-gray-800">Post not found.</p>
-          <button
-            onClick={() => router.back()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-  if (!user) {
-    return (
-      <div className="max-w-2xl mx-auto p-8 text-center">
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <p className="text-gray-800">Loading...</p>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading post...</p>
+          </div>
         </div>
       </div>
     );
@@ -169,13 +167,20 @@ export default function PostPage() {
             {category?.icon}
           </div>
           <span className="text-orange-600 font-medium">{category?.name}</span>
-          {user.id === topic.author_id && (
+          {user && user.id === topic.author_id && (
             <button
               onClick={handleDeletePost}
               className="absolute top-4 right-6 flex items-center gap-2 text-sm text-red-600 hover:text-red-800 transition-colors px-2 py-1 rounded hover:bg-red-50"
               disabled={deleting}
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </button>
           )}
         </div>
@@ -206,9 +211,9 @@ export default function PostPage() {
                   onClick={() => router.push(`/profile?id=${topic.author_id}`)}
                   title={`View profile of ${authorProfile?.first_name || ""} ${authorProfile?.last_name || ""}`}
                 >
-                  {authorProfile
+                  {authorProfile?.first_name && authorProfile?.last_name
                     ? `${authorProfile.first_name} ${authorProfile.last_name}`
-                    : topic.author_id}
+                    : ''}
                 </span>
                 <span>•</span>
                 <span>{getTimeAgo(topic.created_at)}</span>
@@ -221,7 +226,7 @@ export default function PostPage() {
               </div>
               <div className="flex items-center gap-4 mb-6">
                 <button 
-                  onClick={() => setShowCommentBox(!showCommentBox)}
+                  onClick={() => user ? setShowCommentBox(!showCommentBox) : router.push("/auth/login")}
                   className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100"
                 >
                   <MessageSquare size={16} />
@@ -241,7 +246,7 @@ export default function PostPage() {
                   <span className="text-sm font-medium">Save</span>
                 </button>
               </div>
-              {showCommentBox && (
+              {showCommentBox && user && (
                 <div className="border border-gray-200 rounded-lg mb-6">
                   <div className="p-3 border-b border-gray-200 bg-gray-50">
                     <span className="text-xs text-gray-500">Comment as </span>
@@ -284,8 +289,19 @@ export default function PostPage() {
                   </div>
                 </div>
               )}
+              {!user && (
+                <div className="border border-gray-200 rounded-lg mb-6 p-4 text-center">
+                  <p className="text-gray-600 mb-3">
+                    <Link href="/auth/login" className="text-blue-600 hover:underline">
+                      Sign in
+                    </Link>
+                    {" "}to comment on this post
+                  </p>
+                </div>
+              )}
+              
               <div className="border-t border-gray-200 pt-4">
-                {CommentsSection}
+                <ForumComments topicId={topicId!} currentUserId={user?.id} />
               </div>
             </div>
           </div>

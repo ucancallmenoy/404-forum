@@ -14,25 +14,35 @@ const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: s
     router.push(`/profile?id=${userId}`);
   };
 
+   // Only show initials if BOTH first and last names exist
+  const initials = profile?.first_name && profile?.last_name 
+    ? `${profile.first_name[0]}${profile.last_name[0]}`
+    : '';
+
+  // Only show full name if BOTH first and last names exist
+  const displayName = profile?.first_name && profile?.last_name
+    ? `${profile.first_name} ${profile.last_name}`
+    : '';
+
   return (
     <div className="flex items-start gap-3 mb-2 w-full">
       <button
         type="button"
         className="focus:outline-none"
         onClick={handleProfileClick}
-        title={`View profile of ${profile?.first_name || ""} ${profile?.last_name || ""}`}
+        title={displayName ? `View profile of ${displayName}` : ''}
       >
         {profile?.profile_picture ? (
           <Image
             src={profile.profile_picture}
-            alt={`${profile.first_name} ${profile.last_name}`}
+            alt={displayName}
             width={48}
             height={48}
             className="rounded-full object-cover border"
           />
         ) : (
           <span className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-bold text-gray-500 border">
-            {profile?.first_name?.[0] || ""}{profile?.last_name?.[0] || ""}
+            {initials}
           </span>
         )}
       </button>
@@ -42,7 +52,7 @@ const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: s
           className="text-base font-semibold text-gray-900 text-left hover:underline focus:outline-none"
           onClick={handleProfileClick}
         >
-          {profile?.first_name || ""} {profile?.last_name || ""}
+          {displayName}
         </button>
         <span className="text-xs text-gray-400 mt-1">{new Date(createdAt).toLocaleString()}</span>
       </div>

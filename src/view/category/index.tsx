@@ -1,5 +1,5 @@
 "use client";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useCategories } from "@/hooks/use-categories";
 import { useTopics } from "@/hooks/use-topics";
 import { useAuth } from "@/contexts/auth-context";
@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 
 export default function CategoryPage() {
   const params = useSearchParams();
+  const router = useRouter();
   const categoryId = params.get("id") || "";
   const { categories, loading: loadingCategories } = useCategories();
   const { topics, loading: loadingTopics, setTopics } = useTopics(categoryId);
@@ -45,6 +46,12 @@ export default function CategoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
+      <button
+        onClick={() => router.back()}
+        className="mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+      >
+        ← Back
+      </button>
       <CategoryHeader category={category} onTopicCreated={handleTopicCreated} />
       <CategoryTopicList topics={topics} currentUserId={user?.id} />
     </div>
