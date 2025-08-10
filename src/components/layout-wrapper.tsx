@@ -2,6 +2,7 @@
 import { usePathname } from "next/navigation";
 import { useCategories } from "@/hooks/use-categories";
 import ForumSidebar from "@/components/sidebar";
+import { useEffect } from "react";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -9,12 +10,28 @@ interface LayoutWrapperProps {
 
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
-  const { categories } = useCategories();
+  const { categories, setCategories, refreshCategories } = useCategories();
+  
+  // Listen for global category updates
+  useEffect(() => {
+    const handleCategoriesUpdate = (event: CustomEvent) => {
+      setCategories(event.detail);
+      // Also refresh to ensure we have the latest data
+      refreshCategories();
+    };
+
+    window.addEventListener('categories-updated', handleCategoriesUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('categories-updated', handleCategoriesUpdate as EventListener);
+    };
+  }, [setCategories, refreshCategories]);
   
   const showSidebar =
-  pathname.startsWith("/dashboard") ||
-  pathname.startsWith("/category") ||
-  pathname.startsWith("/topic");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/category") ||
+    pathname.startsWith("/topic") ||
+    pathname.startsWith("/profile");
   const hideOnAuth = pathname.startsWith("/auth/");
 
   if (hideOnAuth) {

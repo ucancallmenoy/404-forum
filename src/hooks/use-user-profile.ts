@@ -55,6 +55,35 @@ export function useUserProfile(userId?: string) {
     }
   }, [userId, profile]);
 
+  const uploadProfilePicture = useCallback(async (file: File) => {
+    if (!userId) throw new Error("No user ID available");
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', userId);
+
+      const res = await fetch("/api/users/profile-picture", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(prev => prev ? { ...prev, profile_picture: data.profile_picture } : null);
+        return data;
+      } else {
+        const errData = await res.json();
+        setError(errData.error || "Failed to upload profile picture");
+        throw new Error(errData.error || "Failed to upload profile picture");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload profile picture");
+      throw err;
+    }
+  }, [userId]);
+
   const createProfile = useCallback(async (profileData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>) => {
     if (!userId) throw new Error("No user ID available");
     setError(null);
@@ -92,6 +121,7 @@ export function useUserProfile(userId?: string) {
     loading,
     error,
     updateProfile,
+    uploadProfilePicture,
     createProfile,
     refreshProfile,
   };

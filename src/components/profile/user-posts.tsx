@@ -3,9 +3,13 @@ import { useRouter } from "next/navigation";
 import { Topic } from "@/types/topic";
 import { MessageCircle } from "lucide-react";
 import { UserPostsProps } from "@/types/post";
+import TopicItem from "@/components/topic/topic-item";
 
+interface ExtendedUserPostsProps extends UserPostsProps {
+  onPostsCountChange?: (count: number) => void;
+}
 
-export default function UserPosts({ userId }: UserPostsProps) {
+export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPostsProps) {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -17,72 +21,72 @@ export default function UserPosts({ userId }: UserPostsProps) {
       if (res.ok) {
         const data = await res.json();
         setTopics(data);
+        if (onPostsCountChange) {
+          onPostsCountChange(data.length);
+        }
       }
       setLoading(false);
     };
     fetchTopics();
-  }, [userId]);
+  }, [userId, onPostsCountChange]);
+
+  const handleDeleted = (topicId: string) => {
+    const newTopics = topics.filter(t => t.id !== topicId);
+    setTopics(newTopics);
+    if (onPostsCountChange) {
+      onPostsCountChange(newTopics.length);
+    }
+  };
+
+  const handleAuthorClick = (authorId: string) => {
+    router.push(`/profile?id=${authorId}`);
+  };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <span className="text-gray-500">Loading posts...</span>
+      <div className="p-8">
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="animate-pulse border-b border-gray-100 pb-4">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 bg-gray-200 rounded"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (topics.length === 0) {
     return (
-      <div className="text-center text-gray-400 italic py-8">
-        No posts found for this user.
+      <div className="p-12 text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <MessageCircle className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
+        <p className="text-gray-500">When this user creates posts, they will appear here.</p>
       </div>
     );
   }
 
   return (
-    <section className="mt-0">
-      <h3 className="text-2xl font-bold mb-6 text-gray-900">Posts</h3>
-      <div className="flex flex-col gap-6">
-        {topics.map(topic => (
-          <div
-            key={topic.id}
-            className="bg-white border border-gray-200 rounded-xl shadow hover:shadow-xl transition-shadow duration-200"
-          >
-            <div className="px-6 py-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-500 font-mono">
-                  {new Date(topic.created_at).toLocaleString()}
-                </span>
-                {topic.updated_at && topic.updated_at !== topic.created_at && (
-                  <span className="text-xs text-gray-400 italic">Edited</span>
-                )}
-              </div>
-              <div
-                className="text-xl font-bold text-gray-900 mb-1 hover:underline cursor-pointer transition"
-                onClick={() => router.push(`/topic?id=${topic.id}`)}
-                title="View full post"
-              >
-                {topic.title}
-              </div>
-              <div className="text-base text-gray-800 mb-2 leading-relaxed">
-                {topic.content.length > 240
-                  ? topic.content.slice(0, 240) + "..."
-                  : topic.content}
-              </div>
-              <div className="flex items-center gap-6 mt-2">
-                <button
-                  className="flex items-center gap-1 text-sm text-blue-600 hover:underline font-semibold"
-                  title="View full post"
-                  onClick={() => router.push(`/topic?id=${topic.id}`)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Comments
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="space-y-2">
+      {topics.map(topic => (
+        <TopicItem
+          key={topic.id}
+          topic={topic}
+          onAuthorClick={handleAuthorClick}
+          currentUserId={userId}
+          onDeleted={handleDeleted}
+        />
+      ))}
+    </div>
   );
 }

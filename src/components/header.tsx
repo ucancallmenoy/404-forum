@@ -25,7 +25,7 @@ export default function Header() {
   const [showTopicModal, setShowTopicModal] = useState(false);
 
   // Add categories and createTopic functionality
-  const { categories } = useCategories();
+  const { categories, setCategories, refreshCategories } = useCategories();
   const { createTopic } = useCreateTopic();
 
   useEffect(() => {
@@ -62,7 +62,6 @@ export default function Header() {
     alert("Subscribed!");
   };
 
-  // Add proper topic submission handler
   const handleSubmitTopic = async (form: {
     title: string;
     content: string;
@@ -79,8 +78,25 @@ export default function Header() {
     
     if (success) {
       setShowTopicModal(false);
-      // Optional: Show success message or redirect
-      // You could also refresh the page or redirect to the new topic
+    }
+  };
+
+  // **ENHANCED**: Better category refresh for header
+  const handleCategoryCreated = async () => {
+    try {
+      const res = await fetch("/api/category");
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data); // Update local state
+        
+        // Dispatch global event to notify all components
+        window.dispatchEvent(new CustomEvent('categories-updated', { detail: data }));
+        
+        // Force refresh of categories hook
+        refreshCategories();
+      }
+    } catch (error) {
+      console.error("Failed to refresh categories:", error);
     }
   };
 
@@ -194,38 +210,36 @@ export default function Header() {
         </nav>
       </div>
 
-      {/* {pathname === "/dashboard" && ( */}
-        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Forum</h1>
-            <p className="text-sm text-gray-600">Join discussions with other developers</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              className="px-3 py-1 text-sm text-gray-600 hover:text-blue-600"
-              onClick={handleSubscribe}
-            >
-              Subscribe
-            </button>
-            <button 
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer"
-              onClick={handleCreateTopic}
-            >
-              <Plus size={16} />
-              Create Topic
-            </button>
-            {user && (
-              <button
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
-                onClick={() => setShowCategoryModal(true)}
-              >
-                <FolderPlus size={16} />
-                Create Category
-              </button>
-            )}
-          </div>
+      <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Forum</h1>
+          <p className="text-sm text-gray-600">Join discussions with other developers</p>
         </div>
-      {/* )} */}
+        <div className="flex items-center gap-3">
+          <button 
+            className="px-3 py-1 text-sm text-gray-600 hover:text-blue-600"
+            onClick={handleSubscribe}
+          >
+            Subscribe
+          </button>
+          <button 
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer"
+            onClick={handleCreateTopic}
+          >
+            <Plus size={16} />
+            Create Topic
+          </button>
+          {user && (
+            <button
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 cursor-pointer"
+              onClick={() => setShowCategoryModal(true)}
+            >
+              <FolderPlus size={16} />
+              Create Category
+            </button>
+          )}
+        </div>
+      </div>
       
       {showTopicModal && user && (
         <ForumCreateTopicModal
@@ -237,7 +251,7 @@ export default function Header() {
 
       {showCategoryModal && (
         <CreateCategoryModal
-          onCreated={() => setShowCategoryModal(false)}
+          onCreated={handleCategoryCreated}
           onClose={() => setShowCategoryModal(false)}
         />
       )}

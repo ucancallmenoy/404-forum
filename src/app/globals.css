@@ -32,3 +32,9 @@ a:hover {
   color: var(--primary-hover);
   text-decoration: underline;
 }
+
+a.bg-blue-600,
+a.bg-blue-600:hover,
+a.text-white {
+  color: #fff !important;
+}

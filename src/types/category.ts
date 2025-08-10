@@ -22,6 +22,7 @@ export interface CategoryTopicListProps {
 export interface CategoryGridProps {
   categories: Category[];
   limit?: number;
+  onCategoryCreated?: () => void;
 }
 
 export interface CreateCategoryModalProps {

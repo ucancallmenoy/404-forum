@@ -13,7 +13,7 @@ import ForumCreateTopicModal from "@/components/dashboard/create-topic";
 export default function ForumDashboard() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const { categories, loading: loadingCategories } = useCategories();
+  const { categories, loading: loadingCategories, setCategories, refreshCategories } = useCategories();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
   const { topics, loading: loadingTopics } = useTopics(selectedCategoryId);
   const { createTopic } = useCreateTopic();
@@ -22,7 +22,7 @@ export default function ForumDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [reloadTopics, setReloadTopics] = useState(false);
 
-  // Loading components
+  // Loading components remain the same...
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center py-8">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -107,6 +107,25 @@ export default function ForumDashboard() {
     setSelectedCategoryId(undefined);
   };
 
+  // **FIXED**: Enhanced category refresh function
+  const handleCategoryCreated = async () => {
+    try {
+      const res = await fetch("/api/category");
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data); // Update local state immediately
+        
+        // Dispatch custom event to notify ALL components using categories
+        window.dispatchEvent(new CustomEvent('categories-updated', { detail: data }));
+        
+        // Force a complete refresh of categories hook
+        refreshCategories();
+      }
+    } catch (error) {
+      console.error("Failed to refresh categories:", error);
+    }
+  };
+
   // Filter topics based on search query
   const filteredTopics = topics.filter(topic => 
     topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,6 +157,7 @@ export default function ForumDashboard() {
         return (
           <CategoryGrid 
             categories={categories}
+            onCategoryCreated={handleCategoryCreated}
           />
         );
       case 'Following':
@@ -165,7 +185,8 @@ export default function ForumDashboard() {
           <>
             <CategoryGrid 
               categories={categories}
-              limit={5}
+              limit={6}
+              onCategoryCreated={handleCategoryCreated}
             />
             <TopicList
               topics={filteredTopics}

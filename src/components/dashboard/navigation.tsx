@@ -33,7 +33,7 @@ export default function ForumNavigation({
         </div>
         <div className="flex items-center gap-4">
           {/* Only show category filter when on "All Topics" or "My Topics" tab */}
-          {(activeTab === 'All Topics' || activeTab === 'My Topics') && (
+          {/* {(activeTab === 'All Topics' || activeTab === 'My Topics') && (
             <select
               className="px-3 py-1 text-sm border border-gray-300 rounded bg-white text-gray-700"
               value={selectedCategoryId ?? ""}
@@ -47,7 +47,7 @@ export default function ForumNavigation({
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-          )}
+          )} */}
           <div className="flex items-center gap-2 border border-gray-300 rounded px-3 py-1 bg-white">
             <Search size={16} className="text-gray-400" />
             <input
