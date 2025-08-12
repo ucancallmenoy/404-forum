@@ -15,28 +15,46 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
   const router = useRouter();
 
   useEffect(() => {
-    if (!userId) return;
-    const fetchTopics = async () => {
-      const res = await fetch(`/api/topic?authorId=${userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const topicsArray = Array.isArray(data) ? data : data.topics ?? [];
-        setTopics(topicsArray);
-        if (onPostsCountChange) {
-          onPostsCountChange(topicsArray.length);
-        }
-      }
+    if (!userId) {
       setLoading(false);
+      return;
+    }
+    
+    const fetchTopics = async () => {
+      setLoading(true);
+      try {
+        // Use a high limit to get all user posts, not just 5
+        const res = await fetch(`/api/topic?authorId=${userId}&limit=1000&page=1`);
+        if (res.ok) {
+          const data = await res.json();
+          const topicsArray = Array.isArray(data) ? data : data.topics ?? [];
+          setTopics(topicsArray);
+          // Call the callback immediately after setting topics
+          if (onPostsCountChange) {
+            onPostsCountChange(topicsArray.length);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user topics:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    
     fetchTopics();
-  }, [userId, onPostsCountChange]);
+  }, [userId]);
+
+  // Call onPostsCountChange whenever topics change
+  useEffect(() => {
+    if (onPostsCountChange) {
+      onPostsCountChange(topics.length);
+    }
+  }, [topics.length, onPostsCountChange]);
 
   const handleDeleted = (topicId: string) => {
     const newTopics = topics.filter(t => t.id !== topicId);
     setTopics(newTopics);
-    if (onPostsCountChange) {
-      onPostsCountChange(newTopics.length);
-    }
+    // The useEffect above will handle calling onPostsCountChange
   };
 
   const handleAuthorClick = (authorId: string) => {

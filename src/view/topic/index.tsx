@@ -1,25 +1,28 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Heart, MessageSquare, Share, Bookmark, Loader2 } from "lucide-react";
-import { useTopics } from "@/hooks/use-topics";
 import { useCreatePost } from "@/hooks/use-create-post";
 import ForumComments from "@/components/dashboard/comments";
 import { useCategories } from "@/hooks/use-categories";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useAuth } from "@/contexts/auth-context";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { Topic } from "@/types/topic";
 
 export default function PostPage() {
   const router = useRouter();
   const params = useSearchParams();
   const topicId = params.get("id");
   const { user } = useAuth();
-  const { topics, loading: topicsLoading } = useTopics();
+  
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [topicLoading, setTopicLoading] = useState(true);
+  const [topicError, setTopicError] = useState<string | null>(null);
+  
   const { categories, loading: categoriesLoading } = useCategories();
-  const topic = useMemo(() => topics.find(t => t.id === topicId), [topics, topicId]);
-  const category = useMemo(() => categories.find(c => c.id === topic?.category_id), [categories, topic]);
+  const category = categories.find(c => c.id === topic?.category_id);
   const { createPost, loading: posting } = useCreatePost();
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,59 @@ export default function PostPage() {
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(topic?.likes ?? 0);
   const [likeLoading, setLikeLoading] = useState(false);
-  const isLoading = topicsLoading || categoriesLoading;
+
+  useEffect(() => {
+    if (!topicId) {
+      setTopicLoading(false);
+      return;
+    }
+
+    const fetchTopic = async () => {
+      setTopicLoading(true);
+      setTopicError(null);
+      
+      try {
+        const res = await fetch(`/api/topic?page=1&limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          const topics = Array.isArray(data) ? data : data.topics ?? [];
+          const foundTopic = topics.find((t: Topic) => t.id === topicId);
+          
+          if (foundTopic) {
+            setTopic(foundTopic);
+            setLikesCount(foundTopic.likes ?? 0);
+          } else {
+            setTopicError("Topic not found");
+          }
+        } else {
+          setTopicError("Failed to fetch topic");
+        }
+      } catch (error) {
+        console.error("Error fetching topic:", error);
+        setTopicError("Error loading topic");
+      } finally {
+        setTopicLoading(false);
+      }
+    };
+
+    fetchTopic();
+  }, [topicId]);
+
+  // Fetch like status
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      if (!topic?.id || !user?.id) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("topic_likes")
+        .select("id")
+        .eq("topic_id", topic.id)
+        .eq("user_id", user.id)
+        .single();
+      setLiked(!!data);
+    };
+    fetchLikeStatus();
+  }, [topic?.id, user?.id]);
 
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,33 +169,33 @@ export default function PostPage() {
     }
   };
 
-  useEffect(() => {
-    if (topic?.likes !== undefined) setLikesCount(topic.likes);
-  }, [topic?.likes]);
-
-  useEffect(() => {
-    const fetchLikeStatus = async () => {
-      if (!topic?.id || !user?.id) return;
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("topic_likes")
-        .select("id")
-        .eq("topic_id", topic.id)
-        .eq("user_id", user.id)
-        .single();
-      setLiked(!!data);
-    };
-    fetchLikeStatus();
-  }, [topic?.id, user?.id]);
-
-
-  if (!topic || isLoading) {
+  // Loading state
+  if (topicLoading || categoriesLoading) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <p className="text-gray-600">Loading post...</p>
+            <p className="text-gray-600">Loading topic...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (topicError || !topic) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{topicError || "Topic not found"}</p>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go to Dashboard
+            </button>
           </div>
         </div>
       </div>
