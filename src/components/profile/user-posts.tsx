@@ -20,9 +20,10 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
       const res = await fetch(`/api/topic?authorId=${userId}`);
       if (res.ok) {
         const data = await res.json();
-        setTopics(data);
+        const topicsArray = Array.isArray(data) ? data : data.topics ?? [];
+        setTopics(topicsArray);
         if (onPostsCountChange) {
-          onPostsCountChange(data.length);
+          onPostsCountChange(topicsArray.length);
         }
       }
       setLoading(false);
