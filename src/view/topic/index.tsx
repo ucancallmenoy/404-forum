@@ -37,9 +37,12 @@ export default function PostPage() {
     e.preventDefault();
     setError(null);
 
-    
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
     if (!comment.trim()) return;
-    
+
     const ok = await createPost({
       topic_id: topicId!,
       author_id: user.id,
