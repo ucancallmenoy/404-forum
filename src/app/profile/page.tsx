@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import ProfilePage from "@/view/profile";
 
 export default function Page() {
-  return <ProfilePage />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProfilePage />
+    </Suspense>
+  );
 }

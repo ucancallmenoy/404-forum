@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
     const filePath = `${userId}/${fileName}`;
 
     const fileBuffer = await file.arrayBuffer();
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('profile-pictures')
-      .upload(filePath, fileBuffer, {
-        contentType: file.type,
-        upsert: true
-      });
+    const { error: uploadError } = await supabase.storage
+    .from('profile-pictures')
+    .upload(filePath, fileBuffer, {
+      contentType: file.type,
+      upsert: true
+    });
 
     if (uploadError) {
       console.error('Upload error:', uploadError);

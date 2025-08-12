@@ -1,4 +1,3 @@
-"use client";
 import ForumDashboard from "@/view/dashboard";
 
 export default function DashboardPage() {

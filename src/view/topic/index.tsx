@@ -296,7 +296,7 @@ export default function PostPage() {
               )}
               
               <div className="border-t border-gray-200 pt-4">
-                <ForumComments topicId={topicId!} currentUserId={user?.id} />
+                <ForumComments topicId={topicId!} currentUserId={user?.id ?? ""} />
               </div>
             </div>
           </div>

@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import CategoryPage from "@/view/category";
 
 export default function Page() {
-  return <CategoryPage />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CategoryPage />
+    </Suspense>
+  );
 }
