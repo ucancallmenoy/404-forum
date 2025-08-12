@@ -5,11 +5,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("id");
   const supabase = createClient();
-  let query = supabase.from("users").select(`
-    id, email, first_name, last_name, phone, bio, profile_picture, created_at, updated_at
-  `);
-  if (userId) query = query.eq("id", userId).single();
-  const { data, error } = await query;
+  let query = supabase
+    .from("users")
+    .select("id, email, first_name, last_name, phone, bio, profile_picture, created_at, updated_at");
+  if (userId) {
+    query = query.eq("id", userId);
+  }
+  const { data, error } = userId
+    ? await query.single()
+    : await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
