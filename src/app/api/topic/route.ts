@@ -5,15 +5,44 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const categoryId = searchParams.get("categoryId");
   const authorId = searchParams.get("authorId");
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "5");
+  const offset = (page - 1) * limit;
+  
   const supabase = createClient();
-  let query = supabase.from("topics").select("*").order("created_at", { ascending: false });
+  let query = supabase
+    .from("topics")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+    
   if (categoryId) query = query.eq("category_id", categoryId);
   if (authorId) query = query.eq("author_id", authorId);
+  
   const { data, error } = await query;
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json(data);
+  
+  // Get total count for pagination info
+  let countQuery = supabase
+    .from("topics")
+    .select("*", { count: "exact", head: true });
+    
+  if (categoryId) countQuery = countQuery.eq("category_id", categoryId);
+  if (authorId) countQuery = countQuery.eq("author_id", authorId);
+  
+  const { count } = await countQuery;
+  
+  return NextResponse.json({
+    topics: data || [],
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      hasMore: (count || 0) > offset + limit
+    }
+  });
 }
 
 export async function POST(request: Request) {

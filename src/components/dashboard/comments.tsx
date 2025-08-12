@@ -1,6 +1,6 @@
 "use client";
 import { usePosts } from "@/hooks/use-posts";
-import { useState, useRef, memo, useEffect } from "react";
+import { useState, useRef, memo, useEffect, useCallback } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -14,12 +14,10 @@ const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: s
     router.push(`/profile?id=${userId}`);
   };
 
-   // Only show initials if BOTH first and last names exist
   const initials = profile?.first_name && profile?.last_name 
     ? `${profile.first_name[0]}${profile.last_name[0]}`
     : '';
 
-  // Only show full name if BOTH first and last names exist
   const displayName = profile?.first_name && profile?.last_name
     ? `${profile.first_name} ${profile.last_name}`
     : '';
@@ -68,19 +66,19 @@ const ForumComments = memo(function ForumComments({ topicId, currentUserId }: Fo
   const loading = postsState.loading;
   const setPostsRef = useRef(postsState.setPosts);
 
-  const refreshPosts = async () => {
+  const refreshPosts = useCallback(async () => {
     const res = await fetch(`/api/post?topicId=${topicId}`);
     if (res.ok) {
       const data = await res.json();
       setPostsRef.current(data);
     }
-  };
+  }, [topicId]);
 
   useEffect(() => {
     const handler = () => refreshPosts();
     window.addEventListener("refresh-comments", handler);
     return () => window.removeEventListener("refresh-comments", handler);
-  }, []);
+  }, [refreshPosts]);
 
   const handleDelete = async (postId: string) => {
     setDeleting(postId);

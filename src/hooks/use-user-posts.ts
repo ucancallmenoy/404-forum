@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Post } from "../types/topic"
+import { Post } from "../types/post"
 
 export function useUserPosts(userId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);

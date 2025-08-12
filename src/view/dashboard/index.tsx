@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/contexts/auth-context";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ForumNavigation from "@/components/dashboard/navigation";
 import CategoryGrid from "@/components/dashboard/category";
@@ -15,19 +15,31 @@ export default function ForumDashboard() {
   const router = useRouter();
   const { categories, loading: loadingCategories, setCategories, refreshCategories } = useCategories();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
-  const { topics, loading: loadingTopics } = useTopics(selectedCategoryId);
-  const { createTopic } = useCreateTopic();
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState('All Topics');
   const [searchQuery, setSearchQuery] = useState('');
-  const [reloadTopics, setReloadTopics] = useState(false);
 
-  // Loading components remain the same...
-  const LoadingSpinner = () => (
-    <div className="flex justify-center items-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
+  // Use the updated useTopics hook
+  const { 
+    topics, 
+    loading: loadingTopics, 
+    loadingMore, 
+    pagination, 
+    loadMore, 
+    refresh: refreshTopics,
+  } = useTopics(selectedCategoryId);
+
+  const { createTopic } = useCreateTopic();
+
+  // Move useMemo BEFORE any conditional returns
+  const filteredTopics = useMemo(() => 
+    topics.filter(topic => 
+      topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      topic.content.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [topics, searchQuery]
   );
+
 
   const LoadingCard = () => (
     <div className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
@@ -45,7 +57,6 @@ export default function ForumDashboard() {
     </div>
   );
 
-  // Show initial loading screen when essential data is loading
   if (loading || loadingCategories) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -92,6 +103,7 @@ export default function ForumDashboard() {
     });
     if (ok) {
       setShowModal(false);
+      refreshTopics();
     }
   };
 
@@ -100,25 +112,20 @@ export default function ForumDashboard() {
   };
 
   const handleRefresh = () => {
-    setReloadTopics(r => !r);
+    refreshTopics();
   };
 
   const handleViewAllTopics = () => {
     setSelectedCategoryId(undefined);
   };
 
-  // **FIXED**: Enhanced category refresh function
   const handleCategoryCreated = async () => {
     try {
       const res = await fetch("/api/category");
       if (res.ok) {
         const data = await res.json();
-        setCategories(data); // Update local state immediately
-        
-        // Dispatch custom event to notify ALL components using categories
+        setCategories(data);
         window.dispatchEvent(new CustomEvent('categories-updated', { detail: data }));
-        
-        // Force a complete refresh of categories hook
         refreshCategories();
       }
     } catch (error) {
@@ -126,32 +133,7 @@ export default function ForumDashboard() {
     }
   };
 
-  // Filter topics based on search query
-  const filteredTopics = topics.filter(topic => 
-    topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    topic.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Render content based on active tab
   const renderContent = () => {
-    // Show loading state for topics when switching categories or tabs
-    if (loadingTopics) {
-      return (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5].map(i => (
-              <LoadingCard key={i} />
-            ))}
-          </div>
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <LoadingCard key={i} />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
     switch (activeTab) {
       case 'Categories':
         return (
@@ -178,6 +160,8 @@ export default function ForumDashboard() {
             onViewAllTopics={handleViewAllTopics}
             currentUserId={user?.id}
             title="My Topics"
+            loadingMore={false}
+            hasMore={false}
           />
         );
       default: // 'All Topics'
@@ -194,6 +178,9 @@ export default function ForumDashboard() {
               onRefresh={handleRefresh}
               onViewAllTopics={handleViewAllTopics}
               currentUserId={user?.id}
+              loadingMore={loadingMore}
+              hasMore={pagination?.hasMore || false}
+              onLoadMore={loadMore}
             />
           </>
         );
@@ -214,7 +201,22 @@ export default function ForumDashboard() {
         />
         <div className="flex">
           <main className="flex-1 px-4 py-6">
-            {renderContent()}
+            {loadingTopics && topics.length === 0 ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <LoadingCard key={i} />
+                  ))}
+                </div>
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <LoadingCard key={i} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              renderContent()
+            )}
           </main>
         </div>
       </div>

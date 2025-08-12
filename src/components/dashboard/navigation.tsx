@@ -5,9 +5,6 @@ import { ForumNavigationProps } from '@/types/forum';
 export default function ForumNavigation({
   activeTab,
   setActiveTab,
-  categories,
-  selectedCategoryId,
-  setSelectedCategoryId,
   searchQuery,
   setSearchQuery
 }: ForumNavigationProps) {

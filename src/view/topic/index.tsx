@@ -33,14 +33,6 @@ export default function PostPage() {
   const [likeLoading, setLikeLoading] = useState(false);
   const isLoading = topicsLoading || categoriesLoading;
 
-  const CommentsSection = useMemo(
-    () =>
-      user
-        ? <ForumComments topicId={topicId!} currentUserId={user.id} />
-        : null,
-    [topicId, user]
-  );
-
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
