@@ -3,21 +3,40 @@ import { createClient } from "@/utils/supabase/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("id");
+  const id = searchParams.get("id");
+  const ids = searchParams.get("ids");
+  
   const supabase = createClient();
-  let query = supabase
-    .from("users")
-    .select("id, email, first_name, last_name, phone, bio, profile_picture, created_at, updated_at");
-  if (userId) {
-    query = query.eq("id", userId);
+  
+  if (ids) {
+    // Batch request
+    const idArray = ids.split(',').filter(Boolean);
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, email, first_name, last_name, profile_picture, bio, created_at")
+      .in("id", idArray);
+      
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json(data || []);
   }
-  const { data, error } = userId
-    ? await query.single()
-    : await query;
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  
+  if (id) {
+    // Single request (existing logic)
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, email, first_name, last_name, profile_picture, bio, created_at")
+      .eq("id", id)
+      .single();
+      
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json(data);
   }
-  return NextResponse.json(data);
+  
+  return NextResponse.json({ error: "Missing id or ids parameter" }, { status: 400 });
 }
 
 export async function POST(request: Request) {

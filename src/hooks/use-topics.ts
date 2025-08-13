@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Topic } from "../types/topic";
+import { useUserCache } from "@/contexts/user-cache-context";
 
 interface PaginationInfo {
   page: number;
@@ -19,11 +20,12 @@ interface UseTopicsReturn {
 }
 
 export function useTopics(categoryId?: string, authorId?: string): UseTopicsReturn {
-  const [topics, setTopics] = useState<Topic[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);  // Initialize as empty array
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const { getUsers } = useUserCache();
 
   const fetchTopics = useCallback(async (page: number = 1, append: boolean = false) => {
     if (page === 1) {
@@ -33,7 +35,7 @@ export function useTopics(categoryId?: string, authorId?: string): UseTopicsRetu
     }
 
     try {
-      let url = `/api/topic?page=${page}&limit=5`;
+      let url = `/api/topic?page=${page}&limit=10`;
       if (categoryId) url += `&categoryId=${categoryId}`;
       if (authorId) url += `&authorId=${authorId}`;
       
@@ -41,22 +43,35 @@ export function useTopics(categoryId?: string, authorId?: string): UseTopicsRetu
       if (res.ok) {
         const data = await res.json();
         
-        if (append && page > 1) {
-          setTopics(prev => [...prev, ...data.topics]);
-        } else {
-          setTopics(data.topics);
+        // Ensure we always have an array
+        const topicsArray = Array.isArray(data) ? data : (data.topics || []);
+        
+        // Batch fetch all author profiles
+        const authorIds = [...new Set(topicsArray.map((t: Topic) => t.author_id))];
+        if (authorIds.length > 0) {
+          await getUsers(authorIds);
         }
         
-        setPagination(data.pagination);
+        if (append && page > 1) {
+          setTopics(prev => [...prev, ...topicsArray]);
+        } else {
+          setTopics(topicsArray);
+        }
+        
+        setPagination(data.pagination || null);
         setCurrentPage(page);
+      } else {
+        console.error('Failed to fetch topics:', res.status);
+        setTopics([]); // Set empty array on error
       }
     } catch (error) {
       console.error("Failed to fetch topics:", error);
+      setTopics([]); // Set empty array on error
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [categoryId, authorId]);
+  }, [categoryId, authorId, getUsers]);
 
   const loadMore = useCallback(async () => {
     if (pagination?.hasMore && !loadingMore && !loading) {

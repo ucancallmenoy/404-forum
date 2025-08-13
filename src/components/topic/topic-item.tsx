@@ -1,23 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
-import { useUserProfile } from "@/hooks/use-user-profile";
+import { useUserCache } from "@/contexts/user-cache-context";
 import Image from 'next/image';
 import { TopicItemProps } from "@/types/topic";
 import { MessageSquare, Share, BookmarkPlus, MoreHorizontal, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/utils/supabase/client";
 
-export default function TopicItem({ topic, onAuthorClick, currentUserId, onDeleted }: TopicItemProps) {
+const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId, onDeleted }: TopicItemProps) {
   const [deleting, setDeleting] = useState(false);
   const [likes, setLikes] = useState(topic.likes || 0);
   const [isLiked, setIsLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const router = useRouter();
-  const { profile: authorProfile } = useUserProfile(topic.author_id);
+  const { getUserFromCache } = useUserCache();
   const { user } = useAuth();
+  const authorProfile = getUserFromCache(topic.author_id);
 
   useEffect(() => {
-    // Determine if the authenticated user liked this topic (like #file:index.tsx)
     const fetchLikeStatus = async () => {
       if (!topic?.id || !user?.id) return;
       const supabase = createClient();
@@ -112,7 +112,6 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
 
         {/* Content Section */}
         <div className="flex-1 p-2">
-          {/* Header */}
           <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
             <div className="flex items-center gap-1">
               {authorProfile?.profile_picture ? (
@@ -122,6 +121,8 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
                   width={16}
                   height={16}
                   className="object-cover rounded-full"
+                  priority={false}
+                  loading="lazy"
                 />
               ) : (
                 <div className="w-4 h-4 bg-gray-300 rounded-full flex items-center justify-center">
@@ -136,7 +137,7 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
               >
                 {authorProfile?.first_name && authorProfile?.last_name
                   ? `${authorProfile.first_name} ${authorProfile.last_name}`
-                  : ''}
+                  : 'Loading...'}
               </span>
             </div>
             <span>•</span>
@@ -179,7 +180,7 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
               <BookmarkPlus size={16} />
               <span>Save</span>
             </button>
-            
+
             {currentUserId === topic.author_id && (
               <div className="flex items-center gap-2 ml-auto">
                 <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
@@ -199,4 +200,5 @@ export default function TopicItem({ topic, onAuthorClick, currentUserId, onDelet
       </div>
     </div>
   );
-}
+})
+export default TopicItem;
