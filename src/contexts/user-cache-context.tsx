@@ -1,15 +1,6 @@
 "use client";
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  profile_picture: string | null;
-  bio?: string;
-  created_at: string;
-}
+import { createContext, useContext, useCallback, ReactNode } from 'react';
+import { UserProfile } from '@/types/users';
 
 interface UserCacheContextType {
   getUsers: (userIds: string[]) => Promise<UserProfile[]>;
@@ -41,7 +32,9 @@ export function UserCacheProvider({ children }: { children: ReactNode }) {
     
     try {
       const users = await pendingRequests.get(batchKey);
-      users.forEach((user: UserProfile) => userCache.set(user.id, user));
+      if (users) {
+        users.forEach((user: UserProfile) => userCache.set(user.id, user));
+      }
       pendingRequests.delete(batchKey);
       return userIds.map(id => userCache.get(id)!).filter(Boolean);
     } catch (error) {

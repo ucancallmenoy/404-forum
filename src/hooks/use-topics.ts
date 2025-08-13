@@ -47,7 +47,7 @@ export function useTopics(categoryId?: string, authorId?: string): UseTopicsRetu
         const topicsArray = Array.isArray(data) ? data : (data.topics || []);
         
         // Batch fetch all author profiles
-        const authorIds = [...new Set(topicsArray.map((t: Topic) => t.author_id))];
+        const authorIds = [...new Set(topicsArray.map((t: Topic) => t.author_id))] as string[];
         if (authorIds.length > 0) {
           await getUsers(authorIds);
         }
