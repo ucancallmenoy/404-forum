@@ -10,7 +10,7 @@ export function useCategories() {
     const res = await fetch("/api/category");
     if (res.ok) {
       const data = await res.json();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : data.categories || []);
     }
     setLoading(false);
   };

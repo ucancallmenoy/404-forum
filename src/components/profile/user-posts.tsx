@@ -4,6 +4,7 @@ import { Topic } from "@/types/topic";
 import { MessageCircle } from "lucide-react";
 import { UserPostsProps } from "@/types/post";
 import TopicItem from "@/components/topic/topic-item";
+import { useAuth } from "@/contexts/auth-context";
 
 interface ExtendedUserPostsProps extends UserPostsProps {
   onPostsCountChange?: (count: number) => void;
@@ -13,6 +14,7 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!userId) {
@@ -102,7 +104,7 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
           key={topic.id}
           topic={topic}
           onAuthorClick={handleAuthorClick}
-          currentUserId={userId}
+          currentUserId={user?.id}
           onDeleted={handleDeleted}
         />
       ))}

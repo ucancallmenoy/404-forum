@@ -35,7 +35,7 @@ export function useTopics(categoryId?: string, authorId?: string): UseTopicsRetu
     }
 
     try {
-      let url = `/api/topic?page=${page}&limit=10`;
+      let url = `/api/topic?page=${page}&limit=5`;
       if (categoryId) url += `&categoryId=${categoryId}`;
       if (authorId) url += `&authorId=${authorId}`;
       

@@ -122,6 +122,31 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const { topicId } = await request.json();
   const supabase = createClient();
+
+  // Get user session
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Check if the topic belongs to the user
+  const { data: topic, error: fetchError } = await supabase
+    .from("topics")
+    .select("author_id")
+    .eq("id", topicId)
+    .single();
+
+  if (fetchError || !topic) {
+    return NextResponse.json({ error: "Topic not found" }, { status: 404 });
+  }
+
+  if (topic.author_id !== user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Delete the topic
   const { error } = await supabase.from("topics").delete().eq("id", topicId);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

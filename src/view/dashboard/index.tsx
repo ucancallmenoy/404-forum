@@ -9,6 +9,7 @@ import { useCategories } from "@/hooks/use-categories";
 import { useTopics } from "@/hooks/use-topics";
 import { useCreateTopic } from "@/hooks/use-create-topic";
 import ForumCreateTopicModal from "@/components/dashboard/create-topic";
+import ForYouList from "@/components/dashboard/for-you";
 
 export default function ForumDashboard() {
   const { user, loading } = useAuth();
@@ -19,7 +20,6 @@ export default function ForumDashboard() {
   const [activeTab, setActiveTab] = useState('All Topics');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Use the updated useTopics hook
   const { 
     topics, 
     loading: loadingTopics, 
@@ -31,7 +31,6 @@ export default function ForumDashboard() {
 
   const { createTopic } = useCreateTopic();
 
-  // Move useMemo BEFORE any conditional returns
   const filteredTopics = useMemo(() => 
     topics.filter(topic => 
       topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -177,6 +176,14 @@ export default function ForumDashboard() {
               onAuthorClick={handleAuthorClick}
               onRefresh={handleRefresh}
               onViewAllTopics={handleViewAllTopics}
+              currentUserId={user?.id}
+              loadingMore={false}
+              hasMore={false}
+            />
+            <ForYouList
+              topics={filteredTopics}
+              onAuthorClick={handleAuthorClick}
+              onRefresh={handleRefresh}
               currentUserId={user?.id}
               loadingMore={loadingMore}
               hasMore={pagination?.hasMore || false}
