@@ -2,18 +2,12 @@
 import TopicItem from '@/components/topic/topic-item';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { RotateCcw, Loader2 } from 'lucide-react';
-import { TopicListProps, Topic } from '@/types/topic';
+import { Topic } from '@/types/topic';
+import { useUserCache } from "@/contexts/user-cache-context";
 
-interface ExtendedTopicListProps extends Omit<TopicListProps, 'topics'> {
-  topics: Topic[];
-  currentUserId?: string;
-  loadingMore?: boolean;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
-}
+const PAGE_LIMIT = 5;
 
-const PAGE_LIMIT = 10;
-
+// Fisher-Yates shuffle
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -23,78 +17,90 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-export default function ForYouList({ 
-  topics: initialTopics, 
+export default function ForYouList({
   onTopicClick, 
   onAuthorClick, 
   onRefresh, 
   title = "Topics For You",
   currentUserId,
-}: ExtendedTopicListProps) {
-  const [localTopics, setLocalTopics] = useState<Topic[]>(() => shuffleArray(initialTopics));
+}: {
+  onTopicClick?: (topicId: string) => void;
+  onAuthorClick?: (authorId: string) => void;
+  onRefresh?: () => void;
+  title?: string;
+  currentUserId?: string;
+}) {
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const { fetchAndCacheUser } = useUserCache();
 
-  // Reset when initial topics change (e.g. new search/filter)
+  const fetchTopics = useCallback(async (pageNum: number, append = false) => {
+  if (loading || loadingMore) return;
+  if (pageNum === 1) setLoading(true);
+  else setLoadingMore(true);
+
+  const res = await fetch(`/api/topic?page=${pageNum}&limit=${PAGE_LIMIT}`);
+  if (res.ok) {
+    const data = await res.json();
+    const newTopics: Topic[] = Array.isArray(data) ? data : data.topics || [];
+    // Prefetch authors
+    const uniqueAuthorIds = [...new Set(newTopics.map(t => t.author_id))];
+    uniqueAuthorIds.forEach(id => fetchAndCacheUser(id));
+    setTopics(prev =>
+      append
+        ? [...prev, ...shuffleArray(newTopics.filter(t => !prev.some(pt => pt.id === t.id)))]
+        : shuffleArray(newTopics)
+    );
+    setHasMore(data.pagination?.hasMore ?? newTopics.length === PAGE_LIMIT);
+    setPage(pageNum);
+  } else {
+    setHasMore(false);
+  }
+  setLoading(false);
+  setLoadingMore(false);
+}, [loading, loadingMore, fetchAndCacheUser]);
+
+  // Initial fetch
   useEffect(() => {
-    setLocalTopics(shuffleArray(initialTopics));
-    setPage(1);
-    setHasMore(true);
-  }, [initialTopics]);
-
-  const handleDeleted = useCallback((topicId: string) => {
-    setLocalTopics(prev => prev.filter(t => t.id !== topicId));
+    fetchTopics(1, false);
+    // eslint-disable-next-line
   }, []);
 
-  // Infinite scroll: observe the loadMoreRef
+  // Infinite scroll observer
   useEffect(() => {
     if (!hasMore || loadingMore) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
         if (first.isIntersecting) {
-          loadMore();
+          fetchTopics(page + 1, true);
         }
       },
       { threshold: 0.1, rootMargin: '50px' }
     );
-
     const currentRef = loadMoreRef.current;
     if (currentRef) observer.observe(currentRef);
     observerRef.current = observer;
-
     return () => {
       if (currentRef && observerRef.current) observerRef.current.unobserve(currentRef);
     };
-    // eslint-disable-next-line
-  }, [hasMore, loadingMore, localTopics]);
+  }, [hasMore, loadingMore, page, fetchTopics]);
 
-  // Load next page of topics
-  const loadMore = async () => {
-    setLoadingMore(true);
-    const nextPage = page + 1;
-    // You can add filters/search params as needed
-    const res = await fetch(`/api/topic?page=${nextPage}&limit=${PAGE_LIMIT}`);
-    if (res.ok) {
-      const data = await res.json();
-      const newTopics: Topic[] = Array.isArray(data) ? data : data.topics || [];
-      if (newTopics.length > 0) {
-        // Avoid duplicates
-        const allTopics = [...localTopics, ...newTopics.filter(t => !localTopics.some(lt => lt.id === t.id))];
-        setLocalTopics(shuffleArray(allTopics));
-        setPage(nextPage);
-        setHasMore(data.pagination?.hasMore ?? newTopics.length === PAGE_LIMIT);
-      } else {
-        setHasMore(false);
-      }
-    } else {
-      setHasMore(false);
-    }
-    setLoadingMore(false);
+  const handleDeleted = useCallback((topicId: string) => {
+    setTopics(prev => prev.filter(t => t.id !== topicId));
+  }, []);
+
+  const handleRefresh = () => {
+    setPage(1);
+    setHasMore(true);
+    setTopics([]);
+    fetchTopics(1, false);
+    if (onRefresh) onRefresh();
   };
 
   return (
@@ -104,22 +110,23 @@ export default function ForYouList({
         <div className="flex items-center gap-3">
           <button 
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 disabled:opacity-50"
-            onClick={onRefresh}
-            disabled={loadingMore}
+            onClick={handleRefresh}
+            disabled={loading || loadingMore}
           >
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
       </div>
-
       <div className="divide-y divide-gray-200">
-        {localTopics.length === 0 ? (
+        {loading && topics.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">Loading topics...</div>
+        ) : topics.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
             No topics found. Be the first to start a discussion!
           </div>
         ) : (
           <>
-            {localTopics.map((topic, index) => (
+            {topics.map((topic, index) => (
               <TopicItem
                 key={`${topic.id}-foryou-${index}`}
                 topic={topic}
@@ -129,7 +136,6 @@ export default function ForYouList({
                 onDeleted={handleDeleted}
               />
             ))}
-            {/* Infinite scroll trigger */}
             {hasMore && (
               <div 
                 ref={loadMoreRef}
@@ -145,7 +151,7 @@ export default function ForYouList({
                 )}
               </div>
             )}
-            {!hasMore && localTopics.length > 0 && (
+            {!hasMore && topics.length > 0 && (
               <div className="p-4 text-center text-gray-500 text-sm">
                 You have reached the end of the topics.
               </div>

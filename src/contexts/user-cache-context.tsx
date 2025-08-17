@@ -5,6 +5,7 @@ import { UserProfile } from '@/types/users';
 interface UserCacheContextType {
   getUsers: (userIds: string[]) => Promise<UserProfile[]>;
   getUserFromCache: (userId: string) => UserProfile | undefined;
+  fetchAndCacheUser: (userId: string) => Promise<UserProfile | undefined>;
 }
 
 const UserCacheContext = createContext<UserCacheContextType | undefined>(undefined);
@@ -43,6 +44,22 @@ export function UserCacheProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Add this single-user fetcher
+  const fetchAndCacheUser = useCallback(async (userId: string): Promise<UserProfile | undefined> => {
+    if (userCache.has(userId)) {
+      return userCache.get(userId);
+    }
+    const res = await fetch(`/api/users?id=${userId}`);
+    if (res.ok) {
+      const user = await res.json();
+      if (user && user.id) {
+        userCache.set(user.id, user);
+        return user;
+      }
+    }
+    return undefined;
+  }, []);
+
   const getUserFromCache = useCallback((userId: string) => {
     return userCache.get(userId);
   }, []);
@@ -50,7 +67,8 @@ export function UserCacheProvider({ children }: { children: ReactNode }) {
   return (
     <UserCacheContext.Provider value={{ 
       getUsers: batchFetchUsers, 
-      getUserFromCache 
+      getUserFromCache,
+      fetchAndCacheUser
     }}>
       {children}
     </UserCacheContext.Provider>

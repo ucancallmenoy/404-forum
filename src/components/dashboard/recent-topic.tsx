@@ -3,6 +3,7 @@ import TopicItem from '@/components/topic/topic-item';
 import { useEffect, useState, useCallback } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { TopicListProps, Topic } from '@/types/topic';
+import { useUserCache } from "@/contexts/user-cache-context";
 
 interface ExtendedTopicListProps extends Omit<TopicListProps, 'topics'> {
   topics: Topic[];
@@ -23,10 +24,17 @@ export default function TopicList({
   // onLoadMore
 }: ExtendedTopicListProps) {
   const [localTopics, setLocalTopics] = useState(topics);
+  const { fetchAndCacheUser } = useUserCache();
 
   useEffect(() => {
     setLocalTopics(topics);
   }, [topics]);
+
+  useEffect(() => {
+    // Prefetch all unique authors
+    const uniqueAuthorIds = [...new Set(topics.map(t => t.author_id))];
+    uniqueAuthorIds.forEach(id => fetchAndCacheUser(id));
+  }, [topics, fetchAndCacheUser]);
 
   const handleDeleted = useCallback((topicId: string) => {
     setLocalTopics(prev => prev.filter(t => t.id !== topicId));

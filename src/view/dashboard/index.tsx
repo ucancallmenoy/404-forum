@@ -23,9 +23,9 @@ export default function ForumDashboard() {
   const { 
     topics, 
     loading: loadingTopics, 
-    loadingMore, 
-    pagination, 
-    loadMore, 
+    // loadingMore, 
+    // pagination, 
+    // loadMore, 
     refresh: refreshTopics,
   } = useTopics(selectedCategoryId);
 
@@ -181,13 +181,9 @@ export default function ForumDashboard() {
               hasMore={false}
             />
             <ForYouList
-              topics={filteredTopics}
               onAuthorClick={handleAuthorClick}
               onRefresh={handleRefresh}
               currentUserId={user?.id}
-              loadingMore={loadingMore}
-              hasMore={pagination?.hasMore || false}
-              onLoadMore={loadMore}
             />
           </>
         );
