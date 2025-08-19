@@ -1,32 +1,33 @@
-import { useState } from "react";
+import { useMutation } from '@tanstack/react-query';
 
 export function useCreatePost() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const mutation = useMutation({
+    mutationFn: async ({
+      topic_id,
+      author_id,
+      content,
+    }: {
+      topic_id: string;
+      author_id: string;
+      content: string;
+    }) => {
+      const res = await fetch("/api/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic_id, author_id, content }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create post");
+      }
+      return true;
+    },
+  });
 
-  const createPost = async ({
-    topic_id,
-    author_id,
-    content,
-  }: {
-    topic_id: string;
-    author_id: string;
-    content: string;
-  }) => {
-    setLoading(true);
-    setError(null);
-    const res = await fetch("/api/post", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic_id, author_id, content }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "Failed to create post");
-    }
-    return res.ok;
+  return {
+    createPost: mutation.mutateAsync,
+    loading: mutation.isPending,
+    error: mutation.error ? (mutation.error as Error).message : null,
+    reset: mutation.reset,
   };
-
-  return { createPost, loading, error };
 }

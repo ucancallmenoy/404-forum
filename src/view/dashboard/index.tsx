@@ -20,12 +20,12 @@ export default function ForumDashboard() {
   const [activeTab, setActiveTab] = useState('All Topics');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { 
-    topics, 
-    loading: loadingTopics, 
-    // loadingMore, 
-    // pagination, 
-    // loadMore, 
+  const {
+    topics,
+    loading: loadingTopics,
+    loadingMore,
+    loadMore,
+    hasNextPage,
     refresh: refreshTopics,
   } = useTopics(selectedCategoryId);
 
@@ -38,7 +38,6 @@ export default function ForumDashboard() {
     ),
     [topics, searchQuery]
   );
-
 
   const LoadingCard = () => (
     <div className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
@@ -95,7 +94,6 @@ export default function ForumDashboard() {
     is_question?: boolean;
   }) => {
     if (!user) return;
-    
     const ok = await createTopic({
       ...form,
       author_id: user.id,
@@ -159,8 +157,9 @@ export default function ForumDashboard() {
             onViewAllTopics={handleViewAllTopics}
             currentUserId={user?.id}
             title="My Topics"
-            loadingMore={false}
-            hasMore={false}
+            loadingMore={loadingMore}
+            hasMore={hasNextPage}
+            onLoadMore={loadMore}
           />
         );
       default: // 'All Topics'
@@ -177,8 +176,9 @@ export default function ForumDashboard() {
               onRefresh={handleRefresh}
               onViewAllTopics={handleViewAllTopics}
               currentUserId={user?.id}
-              loadingMore={false}
-              hasMore={false}
+              loadingMore={loadingMore}
+              hasMore={hasNextPage}
+              onLoadMore={loadMore}
             />
             <ForYouList
               onAuthorClick={handleAuthorClick}

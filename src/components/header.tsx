@@ -24,7 +24,6 @@ export default function Header() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showTopicModal, setShowTopicModal] = useState(false);
 
-  // Add categories and createTopic functionality
   const { categories, setCategories, refreshCategories } = useCategories();
   const { createTopic } = useCreateTopic();
 

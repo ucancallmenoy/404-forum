@@ -1,128 +1,102 @@
-import { useEffect, useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserProfile } from "../types/users";
 
 export function useUserProfile(userId?: string) {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchProfile = useCallback(async () => {
-    if (!userId) {
-      setProfile(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
+  const queryClient = useQueryClient();
+  const {
+    data: profile,
+    isLoading: loading,
+    error,
+    refetch: refreshProfile,
+  } = useQuery<UserProfile | null>({
+    queryKey: ["user-profile", userId],
+    queryFn: async () => {
+      if (!userId) return null;
       const res = await fetch(`/api/users?id=${userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-      } else {
+      if (!res.ok) {
         const errData = await res.json();
-        setError(errData.error || "Failed to fetch profile");
-        setProfile(null);
+        throw new Error(errData.error || "Failed to fetch profile");
       }
-    } catch {
-      setError("Failed to fetch profile");
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+      return await res.json();
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5
+  });
 
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
-    if (!userId || !profile) throw new Error("No user ID or profile available");
-    setError(null);
-    try {
+
+  const updateMutation = useMutation({
+    mutationFn: async (updates: Partial<UserProfile>) => {
+      if (!userId) throw new Error("No user ID available");
       const res = await fetch("/api/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, ...updates }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-        return data;
-      } else {
+      if (!res.ok) {
         const errData = await res.json();
-        setError(errData.error || "Failed to update profile");
         throw new Error(errData.error || "Failed to update profile");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
-      throw err;
-    }
-  }, [userId, profile]);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user-profile", userId], data);
+    },
+  });
 
-  const uploadProfilePicture = useCallback(async (file: File) => {
-    if (!userId) throw new Error("No user ID available");
-    setError(null);
-    
-    try {
+  const uploadPictureMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!userId) throw new Error("No user ID available");
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', userId);
+      formData.append("file", file);
+      formData.append("userId", userId);
 
       const res = await fetch("/api/users/profile-picture", {
         method: "POST",
         body: formData,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(prev => prev ? { ...prev, profile_picture: data.profile_picture } : null);
-        return data;
-      } else {
+      if (!res.ok) {
         const errData = await res.json();
-        setError(errData.error || "Failed to upload profile picture");
         throw new Error(errData.error || "Failed to upload profile picture");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to upload profile picture");
-      throw err;
-    }
-  }, [userId]);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user-profile", userId], (old: UserProfile | null) =>
+        old ? { ...old, profile_picture: data.profile_picture } : old
+      );
+    },
+  });
 
-  const createProfile = useCallback(async (profileData: Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>) => {
-    if (!userId) throw new Error("No user ID available");
-    setError(null);
-    try {
+  const createMutation = useMutation({
+    mutationFn: async (profileData: Omit<UserProfile, "id" | "created_at" | "updated_at">) => {
+      if (!userId) throw new Error("No user ID available");
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, ...profileData }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile(data);
-        return data;
-      } else {
+      if (!res.ok) {
         const errData = await res.json();
-        setError(errData.error || "Failed to create profile");
         throw new Error(errData.error || "Failed to create profile");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create profile");
-      throw err;
-    }
-  }, [userId]);
-
-  const refreshProfile = useCallback(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["user-profile", userId], data);
+    },
+  });
 
   return {
     profile,
     loading,
-    error,
-    updateProfile,
-    uploadProfilePicture,
-    createProfile,
+    error: error ? (error as Error).message : null,
+    updateProfile: updateMutation.mutateAsync,
+    uploadProfilePicture: uploadPictureMutation.mutateAsync,
+    createProfile: createMutation.mutateAsync,
     refreshProfile,
+    updating: updateMutation.isPending,
+    uploading: uploadPictureMutation.isPending,
+    creating: createMutation.isPending,
   };
 }

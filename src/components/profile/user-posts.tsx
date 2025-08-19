@@ -25,13 +25,11 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
     const fetchTopics = async () => {
       setLoading(true);
       try {
-        // Use a high limit to get all user posts, not just 5
         const res = await fetch(`/api/topic?authorId=${userId}&limit=1000&page=1`);
         if (res.ok) {
           const data = await res.json();
           const topicsArray = Array.isArray(data) ? data : data.topics ?? [];
           setTopics(topicsArray);
-          // Call the callback immediately after setting topics
           if (onPostsCountChange) {
             onPostsCountChange(topicsArray.length);
           }
@@ -44,7 +42,7 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
     };
     
     fetchTopics();
-  }, [userId]);
+  }, [userId, onPostsCountChange]);
 
   // Call onPostsCountChange whenever topics change
   useEffect(() => {

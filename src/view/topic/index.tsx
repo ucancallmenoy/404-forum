@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { Topic } from "@/types/topic";
+import { Category } from "@/types/category";
 
 export default function PostPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function PostPage() {
   const [topicError, setTopicError] = useState<string | null>(null);
   
   const { categories, loading: categoriesLoading } = useCategories();
-  const category = categories.find(c => c.id === topic?.category_id);
+  const category = categories.find((c: Category) => c.id === topic?.category_id);
   const { createPost, loading: posting } = useCreatePost();
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);

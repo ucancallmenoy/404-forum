@@ -12,6 +12,7 @@ import UserPosts from "@/components/profile/user-posts";
 import UserCategories from "@/components/profile/user-categories";
 import { Calendar, Cake, Award, TrendingUp, MessageCircle, User } from "lucide-react";
 import Image from "next/image";
+import { Category } from "@/types/category";
 
 export default function ProfilePage() {
   const params = useSearchParams();
@@ -132,7 +133,7 @@ export default function ProfilePage() {
   }
 
   const tabs = ["Overview", "Posts", "Comments", "Categories"];
-  const userCategories = categories.filter(cat => cat.owner_id === profile?.id);
+  const userCategories = categories.filter((cat: Category) => cat.owner_id === profile?.id);
 
   const getTimeAgo = (dateString: string) => {
     const now = new Date();
@@ -255,7 +256,7 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-3">Categories Created</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {userCategories.slice(0, 4).map(category => (
+                        {userCategories.slice(0, 4).map((category: Category) => (
                           <div key={category.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                             <div
                               className="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold"
@@ -307,7 +308,7 @@ export default function ProfilePage() {
           <div className="lg:w-80 space-y-4">
             {/* Profile Card */}
             <UserProfileCard 
-              profile={profile}
+              profile={profile ?? null}
               onEdit={viewingOwnProfile ? handleEditProfile : undefined}
               onProfilePictureChange={viewingOwnProfile ? handleProfilePictureChange : undefined}
               isEditable={viewingOwnProfile}
@@ -399,7 +400,7 @@ export default function ProfilePage() {
       {/* Edit Profile Modal */}
       {viewingOwnProfile && (
         <EditProfile
-          profile={profile}
+          profile={profile ?? null}
           isOpen={isEditModalOpen}
           onClose={handleCloseEdit}
           onSave={handleSaveProfile}

@@ -1,40 +1,35 @@
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Topic } from "../types/topic";
 
 export function useUserPosts(userId?: string) {
-  const [posts, setPosts] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [postsCount, setPostsCount] = useState(0);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      setPostsCount(0);
-      return;
-    }
+  const {
+    data,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['user-posts', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const res = await fetch(`/api/topic?authorId=${userId}&limit=1000&page=1`);
+      if (!res.ok) throw new Error("Failed to fetch user posts");
+      const data = await res.json();
+      return Array.isArray(data) ? data : data.topics ?? [];
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2, 
+  });
 
-    const fetchUserPosts = async () => {
-      setLoading(true);
-      try {
-        // Fetch all posts by setting a high limit or using a different approach
-        const res = await fetch(`/api/topic?authorId=${userId}&limit=1000&page=1`);
-        if (res.ok) {
-          const data = await res.json();
-          // Handle both response formats
-          const topics = Array.isArray(data) ? data : data.topics ?? [];
-          setPosts(topics);
-          setPostsCount(topics.length);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user posts:", error);
-        setPostsCount(0);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const setPosts = (newPosts: Topic[]) => {
+    queryClient.setQueryData(['user-posts', userId], newPosts);
+  };
 
-    fetchUserPosts();
-  }, [userId]);
-
-  return { posts, loading, postsCount };
+  return {
+    posts: data ?? [],
+    loading: isLoading,
+    postsCount: data ? data.length : 0,
+    setPosts,
+    refresh: refetch,
+  };
 }

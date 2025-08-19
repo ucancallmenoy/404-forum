@@ -1,27 +1,36 @@
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Category } from "../types/category";
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchCategories = async () => {
-    setLoading(true);
-    const res = await fetch("/api/category");
-    if (res.ok) {
+  const {
+    data,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await fetch("/api/category");
+      if (!res.ok) throw new Error("Failed to fetch categories");
       const data = await res.json();
-      setCategories(Array.isArray(data) ? data : data.categories || []);
-    }
-    setLoading(false);
-  };
+      return Array.isArray(data) ? data : data.categories || [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+  const setCategories = (newCategories: Category[]) => {
+    queryClient.setQueryData(['categories'], newCategories);
+  };
 
   const refreshCategories = () => {
-    fetchCategories();
+    refetch();
   };
 
-  return { categories, loading, setCategories, refreshCategories };
+  return {
+    categories: data ?? [],
+    loading: isLoading,
+    setCategories,
+    refreshCategories,
+  };
 }
