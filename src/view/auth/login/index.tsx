@@ -13,6 +13,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -34,6 +35,27 @@ export default function LoginForm() {
     setLoading(false);
     if (error) {
       setError(error.message);
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (!form.email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    const res = await fetch("/api/auth/forget-password", {
+      method: "POST",
+      body: JSON.stringify({ email: form.email }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (!res.ok) {
+      setError(data.error || "Failed to send reset email.");
+    } else {
+      setShowCheckEmail(true);
     }
   }
 
@@ -154,6 +176,16 @@ export default function LoginForm() {
                     disabled={loading}
                   />
                 </div>
+                <div className="mt-2 text-right">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    disabled={loading}
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
               </div>
 
               {error && (
@@ -199,6 +231,23 @@ export default function LoginForm() {
           </div>
         </div>
       </div>
+      {showCheckEmail && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 max-w-md w-full text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
+            <p className="text-gray-600 mb-4">
+              We&apos;ve sent a password reset link to <span className="font-medium">{form.email}</span>.<br />
+              Please check your inbox and follow the instructions.
+            </p>
+            <button
+              className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+              onClick={() => window.open('https://mail.google.com', '_blank')}
+            >
+              Go to Gmail
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

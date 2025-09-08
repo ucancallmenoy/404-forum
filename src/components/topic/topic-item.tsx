@@ -93,17 +93,17 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
     <div className="bg-white border border-gray-300 rounded hover:border-gray-400 transition-colors">
       <div className="flex">
         {/* Like Section */}
-        <div className="flex flex-col items-center p-2 w-12 bg-gray-50 rounded-l">
+        <div className="flex flex-col items-center p-3 w-14 bg-gray-50 rounded-l">
           <button
             onClick={handleLike}
-            className={`p-1 rounded hover:bg-gray-200 transition-colors ${
+            className={`p-2 rounded hover:bg-gray-200 transition-colors ${
               isLiked ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'
             }`}
             disabled={likeLoading}
           >
-            <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+            <Heart size={24} fill={isLiked ? 'currentColor' : 'none'} />
           </button>
-          <span className={`text-xs font-bold py-1 ${
+          <span className={`text-sm font-bold py-1 ${
             isLiked ? 'text-red-500' : 'text-gray-700'
           }`}>
             {likes}
@@ -111,22 +111,22 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
         </div>
 
         {/* Content Section */}
-        <div className="flex-1 p-2">
-          <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
-            <div className="flex items-center gap-1">
+        <div className="flex-1 p-4">
+          <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+            <div className="flex items-center gap-2">
               {authorProfile?.profile_picture ? (
                 <Image
                   src={authorProfile.profile_picture}
                   alt={`${authorProfile.first_name} ${authorProfile.last_name}`}
-                  width={16}
-                  height={16}
+                  width={20}
+                  height={20}
                   className="object-cover rounded-full"
                   priority={false}
                   loading="lazy"
                 />
               ) : (
-                <div className="w-4 h-4 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-xs text-gray-600">
+                <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
+                  <span className="text-sm text-gray-600">
                     {authorProfile?.first_name?.[0] || authorProfile?.last_name?.[0] || "?"}
                   </span>
                 </div>
@@ -145,21 +145,21 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
             {topic.is_hot && (
               <>
                 <span>•</span>
-                <span className="px-1 py-0.5 bg-red-500 text-white text-xs rounded font-bold">HOT</span>
+                <span className="px-2 py-1 bg-red-500 text-white text-sm rounded font-bold">HOT</span>
               </>
             )}
           </div>
 
           {/* Title and Content */}
-          <div className="mb-2">
+          <div className="mb-3">
             <h3 
-              className="text-lg font-medium text-gray-900 hover:text-blue-600 cursor-pointer mb-1 leading-tight"
+              className="text-xl font-medium text-gray-900 hover:text-blue-600 cursor-pointer mb-2 leading-tight"
               onClick={() => router.push(`/topic?id=${topic.id}`)}
             >
               {topic.title}
             </h3>
             {topic.content && (
-              <p className="text-sm text-gray-700 line-clamp-3">
+              <p className="text-base text-gray-700 line-clamp-3">
                 {topic.content.slice(0, 200)}
                 {topic.content.length > 200 && "..."}
               </p>
@@ -167,27 +167,27 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center gap-4 text-xs text-gray-600">
-            <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-              <MessageSquare size={16} />
+          <div className="flex items-center gap-6 text-sm text-gray-600">
+            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+              <MessageSquare size={18} />
               <span>Comments</span>
             </button>
-            <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-              <Share size={16} />
+            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+              <Share size={18} />
               <span>Share</span>
             </button>
-            <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-              <BookmarkPlus size={16} />
+            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+              <BookmarkPlus size={18} />
               <span>Save</span>
             </button>
 
             {currentUserId === topic.author_id && (
-              <div className="flex items-center gap-2 ml-auto">
-                <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-                  <MoreHorizontal size={16} />
+              <div className="flex items-center gap-3 ml-auto">
+                <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+                  <MoreHorizontal size={18} />
                 </button>
                 <button
-                  className="text-red-500 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                  className="text-red-500 px-3 py-2 rounded hover:bg-red-50 transition-colors"
                   onClick={handleDelete}
                   disabled={deleting}
                 >
@@ -200,5 +200,6 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
       </div>
     </div>
   );
-})
+});
+
 export default TopicItem;

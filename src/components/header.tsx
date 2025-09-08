@@ -23,6 +23,8 @@ export default function Header() {
   const [homeHovered, setHomeHovered] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showTopicModal, setShowTopicModal] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const { categories, setCategories, refreshCategories } = useCategories();
   const { createTopic } = useCreateTopic();
@@ -42,6 +44,22 @@ export default function Header() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [dropdownOpen]);
+
+  // Scroll detection for hide/show
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false); // Hide on scroll down
+      } else {
+        setIsVisible(true); // Show on scroll up
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   if (hideOnAuth) return null;
 
@@ -100,7 +118,11 @@ export default function Header() {
   };
 
   return (
-    <header className="w-full bg-white border-b border-[var(--border)] p-4">
+    <header 
+      className={`w-full bg-white border-b border-[var(--border)] p-4 sticky top-0 z-50 transition-transform duration-300 ${
+        isVisible ? 'transform translate-y-0' : 'transform -translate-y-full'
+      }`}
+    >
       <div className="flex justify-between items-center mb-4">
         <Link
           href="/dashboard"

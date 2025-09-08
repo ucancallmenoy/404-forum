@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     password,
     options: {
       data: { firstName, lastName },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/login`, 
     },
   });
 

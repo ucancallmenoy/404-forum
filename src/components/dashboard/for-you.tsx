@@ -31,7 +31,7 @@ export default function ForYouList({
   currentUserId?: string;
 }) {
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(2); // Start from page 2 to skip first 5
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -40,34 +40,34 @@ export default function ForYouList({
   const { fetchAndCacheUser } = useUserCache();
 
   const fetchTopics = useCallback(async (pageNum: number, append = false) => {
-  if (loading || loadingMore) return;
-  if (pageNum === 1) setLoading(true);
-  else setLoadingMore(true);
+    if (loading || loadingMore) return;
+    if (pageNum === 2) setLoading(true); // Adjust for initial page 2
+    else setLoadingMore(true);
 
-  const res = await fetch(`/api/topic?page=${pageNum}&limit=${PAGE_LIMIT}`);
-  if (res.ok) {
-    const data = await res.json();
-    const newTopics: Topic[] = Array.isArray(data) ? data : data.topics || [];
-    // Prefetch authors
-    const uniqueAuthorIds = [...new Set(newTopics.map(t => t.author_id))];
-    uniqueAuthorIds.forEach(id => fetchAndCacheUser(id));
-    setTopics(prev =>
-      append
-        ? [...prev, ...shuffleArray(newTopics.filter(t => !prev.some(pt => pt.id === t.id)))]
-        : shuffleArray(newTopics)
-    );
-    setHasMore(data.pagination?.hasMore ?? newTopics.length === PAGE_LIMIT);
-    setPage(pageNum);
-  } else {
-    setHasMore(false);
-  }
-  setLoading(false);
-  setLoadingMore(false);
-}, [loading, loadingMore, fetchAndCacheUser]);
+    const res = await fetch(`/api/topic?page=${pageNum}&limit=${PAGE_LIMIT}`);
+    if (res.ok) {
+      const data = await res.json();
+      const newTopics: Topic[] = Array.isArray(data) ? data : data.topics || [];
+      // Prefetch authors
+      const uniqueAuthorIds = [...new Set(newTopics.map(t => t.author_id))];
+      uniqueAuthorIds.forEach(id => fetchAndCacheUser(id));
+      setTopics(prev =>
+        append
+          ? [...prev, ...shuffleArray(newTopics.filter(t => !prev.some(pt => pt.id === t.id)))]
+          : shuffleArray(newTopics)
+      );
+      setHasMore(data.pagination?.hasMore ?? newTopics.length === PAGE_LIMIT);
+      setPage(pageNum);
+    } else {
+      setHasMore(false);
+    }
+    setLoading(false);
+    setLoadingMore(false);
+  }, [loading, loadingMore, fetchAndCacheUser]);
 
-  // Initial fetch
+  // Initial fetch from page 2
   useEffect(() => {
-    fetchTopics(1, false);
+    fetchTopics(2, false);
     // eslint-disable-next-line
   }, []);
 
@@ -96,10 +96,10 @@ export default function ForYouList({
   }, []);
 
   const handleRefresh = () => {
-    setPage(1);
+    setPage(2); // Reset to page 2
     setHasMore(true);
     setTopics([]);
-    fetchTopics(1, false);
+    fetchTopics(2, false);
     if (onRefresh) onRefresh();
   };
 

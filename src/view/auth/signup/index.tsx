@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { User, Mail, Lock, Users, Code, Lightbulb, Rocket } from "lucide-react";
@@ -9,7 +8,7 @@ export default function SignupForm() {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +24,7 @@ export default function SignupForm() {
     if (!res.ok) {
       setError(data.error || "Signup failed");
     } else {
-      router.push("/auth/login");
+      setShowCheckEmail(true);
     }
   }
 
@@ -240,6 +239,23 @@ export default function SignupForm() {
         <div className="absolute bottom-20 right-20 w-20 h-20 bg-white/10 rounded-full"></div>
         <div className="absolute top-1/3 right-8 w-16 h-16 bg-white/10 rounded-full"></div>
       </div>
+      {showCheckEmail && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 max-w-md w-full text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
+            <p className="text-gray-600 mb-4">
+              We&apos;ve sent a confirmation link to <span className="font-medium">{form.email}</span>.<br />
+              Please verify your email to activate your account.
+            </p>
+            <button
+              className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition"
+              onClick={() => window.open('https://mail.google.com', '_blank')}
+            >
+              Go to Gmail
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

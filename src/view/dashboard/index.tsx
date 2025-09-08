@@ -10,6 +10,8 @@ import { useTopics } from "@/hooks/use-topics";
 import { useCreateTopic } from "@/hooks/use-create-topic";
 import ForumCreateTopicModal from "@/components/dashboard/create-topic";
 import ForYouList from "@/components/dashboard/for-you";
+import { useUserPosts } from "@/hooks/use-user-posts";
+import topic from "../topic";
 
 export default function ForumDashboard() {
   const { user, loading } = useAuth();
@@ -31,12 +33,22 @@ export default function ForumDashboard() {
 
   const { createTopic } = useCreateTopic();
 
-  const filteredTopics = useMemo(() => 
-    topics.filter(topic => 
+  const { posts: userTopics, loading: loadingUserTopics } = useUserPosts(user?.id);
+
+  const filteredTopics = useMemo(() =>
+    topics.filter((topic: { title: string; content: string }) =>
       topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       topic.content.toLowerCase().includes(searchQuery.toLowerCase())
     ),
     [topics, searchQuery]
+  );
+
+  const filteredUserTopics = useMemo(() =>
+    userTopics.filter((topic: { title: string; content: string }) =>
+      topic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      topic.content.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [userTopics, searchQuery]
   );
 
   const LoadingCard = () => (
@@ -146,20 +158,15 @@ export default function ForumDashboard() {
           </div>
         );
       case 'My Topics':
-        const userTopics = user 
-          ? filteredTopics.filter(topic => topic.author_id === user.id)
-          : [];
         return (
           <TopicList
-            topics={userTopics}
+            topics={filteredUserTopics}
             onAuthorClick={handleAuthorClick}
-            onRefresh={handleRefresh}
+            onRefresh={() => {}} // Refresh logic can be added if needed
             onViewAllTopics={handleViewAllTopics}
             currentUserId={user?.id}
             title="My Topics"
-            loadingMore={loadingMore}
-            hasMore={hasNextPage}
-            onLoadMore={loadMore}
+            maxItems={Infinity} // Show all user topics
           />
         );
       default: // 'All Topics'

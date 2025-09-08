@@ -10,6 +10,7 @@ interface ExtendedTopicListProps extends Omit<TopicListProps, 'topics'> {
   loadingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  maxItems?: number;
 }
 
 export default function TopicList({ 
@@ -20,8 +21,7 @@ export default function TopicList({
   title = "Recent Topics",
   currentUserId,
   loadingMore = false,
-  // hasMore = false,
-  // onLoadMore
+  maxItems = 5,
 }: ExtendedTopicListProps) {
   const [localTopics, setLocalTopics] = useState(topics);
   const { fetchAndCacheUser } = useUserCache();
@@ -62,7 +62,7 @@ export default function TopicList({
           </div>
         ) : (
           <>
-            {localTopics.slice(0, 5).map((topic, index) => (
+            {localTopics.slice(0, maxItems).map((topic, index) => ( 
               <TopicItem
                 key={`${topic.id}-${index}`}
                 topic={topic}
