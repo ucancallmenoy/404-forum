@@ -26,7 +26,7 @@ export default function Header() {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  const { categories, setCategories, refreshCategories } = useCategories();
+  const { categories, refreshCategories } = useCategories();
   const { createTopic } = useCreateTopic();
 
   useEffect(() => {
@@ -98,20 +98,12 @@ export default function Header() {
     }
   };
 
-  // **ENHANCED**: Better category refresh for header
   const handleCategoryCreated = async () => {
     try {
-      const res = await fetch("/api/category");
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data); // Update local state
-        
-        // Dispatch global event to notify all components
-        window.dispatchEvent(new CustomEvent('categories-updated', { detail: data }));
-        
-        // Force refresh of categories hook
-        refreshCategories();
-      }
+      await refreshCategories();
+      
+      // Dispatch global event to notify all components
+      window.dispatchEvent(new CustomEvent('categories-updated', { detail: categories }));
     } catch (error) {
       console.error("Failed to refresh categories:", error);
     }

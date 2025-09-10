@@ -6,8 +6,9 @@ import { ForumSidebarProps } from "@/types/forum";
 export default function ForumSidebar({ categories }: ForumSidebarProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const userCategories = user
-    ? categories.filter(category => category.owner_id === user.id)
+    ? safeCategories.filter(category => category.owner_id === user.id)
     : [];
 
   return (

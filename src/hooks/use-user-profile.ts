@@ -23,7 +23,6 @@ export function useUserProfile(userId?: string) {
     staleTime: 1000 * 60 * 5
   });
 
-
   const updateMutation = useMutation({
     mutationFn: async (updates: Partial<UserProfile>) => {
       if (!userId) throw new Error("No user ID available");
@@ -87,6 +86,22 @@ export function useUserProfile(userId?: string) {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+      if (!userId) throw new Error("No user ID available");
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to change password");
+      }
+      return await res.json();
+    },
+  });
+
   return {
     profile,
     loading,
@@ -94,9 +109,11 @@ export function useUserProfile(userId?: string) {
     updateProfile: updateMutation.mutateAsync,
     uploadProfilePicture: uploadPictureMutation.mutateAsync,
     createProfile: createMutation.mutateAsync,
+    changePassword: changePasswordMutation.mutateAsync,
     refreshProfile,
     updating: updateMutation.isPending,
     uploading: uploadPictureMutation.isPending,
     creating: createMutation.isPending,
+    changingPassword: changePasswordMutation.isPending,
   };
 }

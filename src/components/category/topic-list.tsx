@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { CategoryTopicListProps } from "@/types/category";
 import TopicItem from "@/components/topic/topic-item";
 import { useUserCache } from "@/contexts/user-cache-context";
 
 export default function CategoryTopicList({ topics, currentUserId }: CategoryTopicListProps) {
-  const safeTopics = Array.isArray(topics) ? topics : [];
-  const { getUserFromCache, fetchAndCacheUser } = useUserCache();
+  const safeTopics = useMemo(() => Array.isArray(topics) ? topics : [], [topics]);
+  const { fetchAndCacheUser } = useUserCache();
   const [authorsLoaded, setAuthorsLoaded] = useState(false);
 
   useEffect(() => {

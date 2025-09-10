@@ -1,59 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Topic } from "@/types/topic";
 import { MessageCircle } from "lucide-react";
 import { UserPostsProps } from "@/types/post";
 import TopicItem from "@/components/topic/topic-item";
 import { useAuth } from "@/contexts/auth-context";
+import { useUserPosts } from "@/hooks/use-user-posts";
+import { Topic } from "@/types/topic";
 
 interface ExtendedUserPostsProps extends UserPostsProps {
   onPostsCountChange?: (count: number) => void;
 }
 
 export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPostsProps) {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { posts, loading, postsCount, setPosts } = useUserPosts(userId);
   const router = useRouter();
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-    
-    const fetchTopics = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/topic?authorId=${userId}&limit=1000&page=1`);
-        if (res.ok) {
-          const data = await res.json();
-          const topicsArray = Array.isArray(data) ? data : data.topics ?? [];
-          setTopics(topicsArray);
-          if (onPostsCountChange) {
-            onPostsCountChange(topicsArray.length);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user topics:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchTopics();
-  }, [userId, onPostsCountChange]);
-
-  // Call onPostsCountChange whenever topics change
+  // Call onPostsCountChange whenever postsCount changes
   useEffect(() => {
     if (onPostsCountChange) {
-      onPostsCountChange(topics.length);
+      onPostsCountChange(postsCount);
     }
-  }, [topics.length, onPostsCountChange]);
+  }, [postsCount, onPostsCountChange]);
 
   const handleDeleted = (topicId: string) => {
-    const newTopics = topics.filter(t => t.id !== topicId);
-    setTopics(newTopics);
+    const newPosts = posts.filter((t: Topic) => t.id !== topicId);
+    setPosts(newPosts);
     // The useEffect above will handle calling onPostsCountChange
   };
 
@@ -83,7 +55,7 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
     );
   }
 
-  if (topics.length === 0) {
+  if (posts.length === 0) {
     return (
       <div className="p-12 text-center">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -97,7 +69,7 @@ export default function UserPosts({ userId, onPostsCountChange }: ExtendedUserPo
 
   return (
     <div className="space-y-2">
-      {topics.map(topic => (
+      {posts.map((topic: Topic) => (
         <TopicItem
           key={topic.id}
           topic={topic}

@@ -1,10 +1,10 @@
 "use client";
-import { usePosts } from "@/hooks/use-posts";
-import { useState, useRef, memo, useEffect, useCallback } from "react";
+import { memo, } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ForumCommentsProps } from "@/types/post";
+import { useComments } from "@/hooks/use-comments";
 
 const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: string; createdAt: string }) {
   const { profile } = useUserProfile(userId);
@@ -59,38 +59,14 @@ const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: s
 });
 
 const ForumComments = memo(function ForumComments({ topicId, currentUserId }: ForumCommentsProps) {
-  const postsState = usePosts(topicId);
-  const [deleting, setDeleting] = useState<string | null>(null);
-
-  const posts = postsState.posts;
-  const loading = postsState.loading;
-  const setPostsRef = useRef(postsState.setPosts);
-
-  const refreshPosts = useCallback(async () => {
-    const res = await fetch(`/api/post?topicId=${topicId}`);
-    if (res.ok) {
-      const data = await res.json();
-      setPostsRef.current(data);
-    }
-  }, [topicId]);
-
-  useEffect(() => {
-    const handler = () => refreshPosts();
-    window.addEventListener("refresh-comments", handler);
-    return () => window.removeEventListener("refresh-comments", handler);
-  }, [refreshPosts]);
+  const { comments, loading, deleteComment, deleting } = useComments(topicId);
 
   const handleDelete = async (postId: string) => {
-    setDeleting(postId);
-    const res = await fetch("/api/post", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId }),
-    });
-    if (res.ok) {
-      setPostsRef.current(posts.filter(p => p.id !== postId));
+    try {
+      await deleteComment(postId);
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
     }
-    setDeleting(null);
   };
 
   return (
@@ -98,19 +74,19 @@ const ForumComments = memo(function ForumComments({ topicId, currentUserId }: Fo
       <h3 className="font-semibold mb-4 text-lg">Comments</h3>
       {loading ? (
         <div>Loading comments...</div>
-      ) : posts.length === 0 ? (
+      ) : comments.length === 0 ? (
         <div className="text-gray-500">No comments yet.</div>
       ) : (
         <ul className="space-y-6">
-          {posts.map(post => (
+          {comments.map(post => (
             <li key={post.id} className="border border-gray-200 rounded-lg p-4 flex flex-col items-start relative">
               {post.author_id === currentUserId && (
                 <button
                   className="absolute top-3 right-3 text-xs text-red-500 hover:underline"
                   onClick={() => handleDelete(post.id)}
-                  disabled={deleting === post.id}
+                  disabled={deleting}
                 >
-                  {deleting === post.id ? "Deleting..." : "Delete"}
+                  {deleting ? "Deleting..." : "Delete"}
                 </button>
               )}
               <AuthorBlock userId={post.author_id} createdAt={post.created_at} />

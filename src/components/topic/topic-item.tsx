@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useUserCache } from "@/contexts/user-cache-context";
 import Image from 'next/image';
 import { TopicItemProps } from "@/types/topic";
-import { MessageSquare, Share, BookmarkPlus, MoreHorizontal, Heart } from "lucide-react";
+import { MessageSquare, Share, BookmarkPlus, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/utils/supabase/client";
 
@@ -59,6 +59,29 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
       }
     } finally {
       setLikeLoading(false);
+    }
+  };
+
+  const handleComments = () => {
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+    router.push(`/topic?id=${topic.id}#comments`);
+  };
+
+  const handleShare = async () => {
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+    const url = `${window.location.origin}/topic?id=${topic.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      alert("Failed to copy link. Please copy manually: " + url);
     }
   };
 
@@ -168,11 +191,17 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
 
           {/* Action Bar */}
           <div className="flex items-center gap-6 text-sm text-gray-600">
-            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+            <button 
+              className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors"
+              onClick={handleComments}
+            >
               <MessageSquare size={18} />
               <span>Comments</span>
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+            <button 
+              className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors"
+              onClick={handleShare}
+            >
               <Share size={18} />
               <span>Share</span>
             </button>
@@ -183,9 +212,6 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
 
             {currentUserId === topic.author_id && (
               <div className="flex items-center gap-3 ml-auto">
-                <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
-                  <MoreHorizontal size={18} />
-                </button>
                 <button
                   className="text-red-500 px-3 py-2 rounded hover:bg-red-50 transition-colors"
                   onClick={handleDelete}

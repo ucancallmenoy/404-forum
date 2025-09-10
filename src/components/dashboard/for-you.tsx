@@ -1,21 +1,8 @@
 "use client";
 import TopicItem from '@/components/topic/topic-item';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { RotateCcw, Loader2 } from 'lucide-react';
-import { Topic } from '@/types/topic';
-import { useUserCache } from "@/contexts/user-cache-context";
-
-const PAGE_LIMIT = 5;
-
-// Fisher-Yates shuffle
-function shuffleArray<T>(array: T[]): T[] {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
+import { useForYouTopics } from '@/hooks/use-topics';
 
 export default function ForYouList({
   onTopicClick, 
@@ -30,46 +17,9 @@ export default function ForYouList({
   title?: string;
   currentUserId?: string;
 }) {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [page, setPage] = useState(2); // Start from page 2 to skip first 5
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const { topics, loading, loadingMore, loadMore, hasMore, setTopics, refresh } = useForYouTopics();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const { fetchAndCacheUser } = useUserCache();
-
-  const fetchTopics = useCallback(async (pageNum: number, append = false) => {
-    if (loading || loadingMore) return;
-    if (pageNum === 2) setLoading(true); // Adjust for initial page 2
-    else setLoadingMore(true);
-
-    const res = await fetch(`/api/topic?page=${pageNum}&limit=${PAGE_LIMIT}`);
-    if (res.ok) {
-      const data = await res.json();
-      const newTopics: Topic[] = Array.isArray(data) ? data : data.topics || [];
-      // Prefetch authors
-      const uniqueAuthorIds = [...new Set(newTopics.map(t => t.author_id))];
-      uniqueAuthorIds.forEach(id => fetchAndCacheUser(id));
-      setTopics(prev =>
-        append
-          ? [...prev, ...shuffleArray(newTopics.filter(t => !prev.some(pt => pt.id === t.id)))]
-          : shuffleArray(newTopics)
-      );
-      setHasMore(data.pagination?.hasMore ?? newTopics.length === PAGE_LIMIT);
-      setPage(pageNum);
-    } else {
-      setHasMore(false);
-    }
-    setLoading(false);
-    setLoadingMore(false);
-  }, [loading, loadingMore, fetchAndCacheUser]);
-
-  // Initial fetch from page 2
-  useEffect(() => {
-    fetchTopics(2, false);
-    // eslint-disable-next-line
-  }, []);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -78,7 +28,7 @@ export default function ForYouList({
       (entries) => {
         const first = entries[0];
         if (first.isIntersecting) {
-          fetchTopics(page + 1, true);
+          loadMore();
         }
       },
       { threshold: 0.1, rootMargin: '50px' }
@@ -89,17 +39,14 @@ export default function ForYouList({
     return () => {
       if (currentRef && observerRef.current) observerRef.current.unobserve(currentRef);
     };
-  }, [hasMore, loadingMore, page, fetchTopics]);
+  }, [hasMore, loadingMore, loadMore]);
 
   const handleDeleted = useCallback((topicId: string) => {
-    setTopics(prev => prev.filter(t => t.id !== topicId));
-  }, []);
+    setTopics(topics.filter(t => t.id !== topicId));
+  }, [topics, setTopics]);
 
   const handleRefresh = () => {
-    setPage(2); // Reset to page 2
-    setHasMore(true);
-    setTopics([]);
-    fetchTopics(2, false);
+    refresh();
     if (onRefresh) onRefresh();
   };
 

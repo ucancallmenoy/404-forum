@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
   const categoryId = searchParams.get("categoryId");
   const authorId = searchParams.get("authorId");
   const page = parseInt(searchParams.get("page") || "1");
@@ -10,6 +11,20 @@ export async function GET(request: Request) {
   const offset = (page - 1) * limit;
   
   const supabase = createClient();
+  
+  if (id) {
+    const { data, error } = await supabase
+      .from("topics")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json(data);
+  }
+  
+  // Existing logic for lists
   let query = supabase
     .from("topics")
     .select("*")

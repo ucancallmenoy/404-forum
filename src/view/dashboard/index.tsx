@@ -11,7 +11,7 @@ import { useCreateTopic } from "@/hooks/use-create-topic";
 import ForumCreateTopicModal from "@/components/dashboard/create-topic";
 import ForYouList from "@/components/dashboard/for-you";
 import { useUserPosts } from "@/hooks/use-user-posts";
-import topic from "../topic";
+import Following from "@/components/dashboard/following";
 
 export default function ForumDashboard() {
   const { user, loading } = useAuth();
@@ -33,7 +33,7 @@ export default function ForumDashboard() {
 
   const { createTopic } = useCreateTopic();
 
-  const { posts: userTopics, loading: loadingUserTopics } = useUserPosts(user?.id);
+  const { posts: userTopics } = useUserPosts(user?.id);
 
   const filteredTopics = useMemo(() =>
     topics.filter((topic: { title: string; content: string }) =>
@@ -50,53 +50,6 @@ export default function ForumDashboard() {
     ),
     [userTopics, searchQuery]
   );
-
-  const LoadingCard = () => (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
-        <div className="flex-1">
-          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <div className="h-3 bg-gray-200 rounded"></div>
-        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
-      </div>
-    </div>
-  );
-
-  if (loading || loadingCategories) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
-            <div className="flex gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-10 bg-gray-200 rounded w-24"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="flex">
-          <main className="flex-1 px-4 py-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {[1, 2, 3, 4, 5].map(i => (
-                <LoadingCard key={i} />
-              ))}
-            </div>
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <LoadingCard key={i} />
-              ))}
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
 
   const handleSubmitTopic = async (form: {
     title: string;
@@ -124,10 +77,6 @@ export default function ForumDashboard() {
     refreshTopics();
   };
 
-  const handleViewAllTopics = () => {
-    setSelectedCategoryId(undefined);
-  };
-
   const handleCategoryCreated = async () => {
     try {
       const res = await fetch("/api/category");
@@ -152,11 +101,7 @@ export default function ForumDashboard() {
           />
         );
       case 'Following':
-        return (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <p className="text-gray-500">Following feature coming soon!</p>
-          </div>
-        );
+        return <Following />;
       case 'My Topics':
         return (
           <TopicList
@@ -197,6 +142,67 @@ export default function ForumDashboard() {
     }
   };
 
+  const handleViewAllTopics = () => {
+    setSelectedCategoryId(undefined);
+  };
+
+  if (loading || loadingCategories) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+            <div className="flex gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-10 bg-gray-200 rounded w-24"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex">
+          <main className="flex-1 px-4 py-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="min-h-screen bg-gray-50">
@@ -215,12 +221,38 @@ export default function ForumDashboard() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[1, 2, 3, 4, 5].map(i => (
-                    <LoadingCard key={i} />
+                    <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <div className="space-y-4">
                   {[1, 2, 3].map(i => (
-                    <LoadingCard key={i} />
+                    <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

@@ -8,7 +8,7 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-gray-100 text-center p-4 text-gray-500 mt-auto">
-      &copy; {new Date().getFullYear()} Forum App. All rights reserved.
+      &copy; {new Date().getFullYear()} 404Forum. All rights reserved.
     </footer>
   );
 }

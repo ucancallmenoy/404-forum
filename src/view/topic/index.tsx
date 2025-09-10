@@ -9,19 +9,18 @@ import { useAuth } from "@/contexts/auth-context";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { Topic } from "@/types/topic";
+import Image from "next/image";
 import { Category } from "@/types/category";
+import { useTopic } from "@/hooks/use-topics";
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function PostPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const topicId = params.get("id");
+  const topicId = params.get("id") || undefined;
   const { user } = useAuth();
   
-  const [topic, setTopic] = useState<Topic | null>(null);
-  const [topicLoading, setTopicLoading] = useState(true);
-  const [topicError, setTopicError] = useState<string | null>(null);
-  
+  const { topic, loading: topicLoading, error: topicError, deleteTopic, deleting, toggleLike, liking } = useTopic(topicId);
   const { categories, loading: categoriesLoading } = useCategories();
   const category = categories.find((c: Category) => c.id === topic?.category_id);
   const { createPost, loading: posting } = useCreatePost();
@@ -31,47 +30,9 @@ export default function PostPage() {
   const [saved, setSaved] = useState(false);
   const { profile: authorProfile } = useUserProfile(topic?.author_id);
   const { profile: userProfile } = useUserProfile(user?.id);
-  const [deleting, setDeleting] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(topic?.likes ?? 0);
-  const [likeLoading, setLikeLoading] = useState(false);
-
-  useEffect(() => {
-    if (!topicId) {
-      setTopicLoading(false);
-      return;
-    }
-
-    const fetchTopic = async () => {
-      setTopicLoading(true);
-      setTopicError(null);
-      
-      try {
-        const res = await fetch(`/api/topic?page=1&limit=100`);
-        if (res.ok) {
-          const data = await res.json();
-          const topics = Array.isArray(data) ? data : data.topics ?? [];
-          const foundTopic = topics.find((t: Topic) => t.id === topicId);
-          
-          if (foundTopic) {
-            setTopic(foundTopic);
-            setLikesCount(foundTopic.likes ?? 0);
-          } else {
-            setTopicError("Topic not found");
-          }
-        } else {
-          setTopicError("Failed to fetch topic");
-        }
-      } catch (error) {
-        console.error("Error fetching topic:", error);
-        setTopicError("Error loading topic");
-      } finally {
-        setTopicLoading(false);
-      }
-    };
-
-    fetchTopic();
-  }, [topicId]);
+  const queryClient = useQueryClient();
 
   // Fetch like status
   useEffect(() => {
@@ -88,6 +49,12 @@ export default function PostPage() {
     };
     fetchLikeStatus();
   }, [topic?.id, user?.id]);
+
+  useEffect(() => {
+    if (window.location.hash === '#comments' && user) {
+      setShowCommentBox(true);
+    }
+  }, [user]);
 
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +74,8 @@ export default function PostPage() {
     if (ok) {
       setComment("");
       setShowCommentBox(false);
-      window.dispatchEvent(new Event("refresh-comments"));
+      // Invalidate comments query to refresh immediately
+      queryClient.invalidateQueries({ queryKey: ['comments', topicId] });
     } else {
       setError("Failed to post comment.");
     }
@@ -115,16 +83,12 @@ export default function PostPage() {
 
   const handleDeletePost = async () => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
-    setDeleting(true);
-    if (topic?.id) {
-      await fetch("/api/topic", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topicId: topic.id }),
-      });
+    try {
+      await deleteTopic(topicId!);
+      router.replace("/dashboard");
+    } catch (error) {
+      console.error("Failed to delete topic:", error);
     }
-    setDeleting(false);
-    router.replace("/dashboard");
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -142,31 +106,14 @@ export default function PostPage() {
       return;
     }
 
-    if (!topic?.id || !user?.id || likeLoading) return;
-    setLikeLoading(true);
+    if (!topic?.id || !user?.id || liking) return;
 
     try {
-      const response = await fetch("/api/topic", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "toggle_like",
-          topicId: topic.id,
-          userId: user.id,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLiked(data.liked);
-        setLikesCount(data.likesCount);
-      } else {
-        console.error("Failed to toggle like");
-      }
+      const data = await toggleLike({ topicId: topic.id, userId: user.id });
+      setLiked(data.liked);
+      setLikesCount(data.likesCount);
     } catch (error) {
       console.error("Error toggling like:", error);
-    } finally {
-      setLikeLoading(false);
     }
   };
 
@@ -244,7 +191,7 @@ export default function PostPage() {
                 className={`p-1 rounded hover:bg-gray-200 transition-colors ${
                   liked ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'
                 }`}
-                disabled={likeLoading}
+                disabled={liking}
               >
                 <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
               </button>
@@ -257,15 +204,34 @@ export default function PostPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                 <span>Posted by</span>
-                <span
-                  className="text-gray-700 hover:underline cursor-pointer font-medium"
+                <button
+                  className="flex items-center gap-2 text-gray-700 hover:underline cursor-pointer font-medium"
                   onClick={() => router.push(`/profile?id=${topic.author_id}`)}
                   title={`View profile of ${authorProfile?.first_name || ""} ${authorProfile?.last_name || ""}`}
                 >
-                  {authorProfile?.first_name && authorProfile?.last_name
-                    ? `${authorProfile.first_name} ${authorProfile.last_name}`
-                    : ''}
-                </span>
+                  {authorProfile?.profile_picture ? (
+                    <Image
+                      src={authorProfile.profile_picture}
+                      alt={`${authorProfile.first_name} ${authorProfile.last_name}`}
+                      width={24}
+                      height={24}
+                      className="object-cover rounded-full"
+                      priority={false}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-xs text-gray-600">
+                        {authorProfile?.first_name?.[0] || authorProfile?.last_name?.[0] || "?"}
+                      </span>
+                    </div>
+                  )}
+                  <span>
+                    {authorProfile?.first_name && authorProfile?.last_name
+                      ? `${authorProfile.first_name} ${authorProfile.last_name}`
+                      : ''}
+                  </span>
+                </button>
                 <span>•</span>
                 <span>{getTimeAgo(topic.created_at)}</span>
               </div>

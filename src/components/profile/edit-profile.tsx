@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { EditProfileProps } from "@/types/users";
 import { X, Save, Loader2, User, Mail, Phone, FileText, Lock, Eye, EyeOff } from "lucide-react";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 export default function EditProfile({ 
   profile, 
@@ -9,6 +10,7 @@ export default function EditProfile({
   onSave, 
   isSaving = false 
 }: EditProfileProps) {
+  const { changePassword, changingPassword } = useUserProfile(profile?.id);
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -28,7 +30,6 @@ export default function EditProfile({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
-  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -101,24 +102,11 @@ export default function EditProfile({
       return;
     }
 
-    setPasswordLoading(true);
     try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        }),
+      await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        setErrors({ currentPassword: errorData.message || 'Failed to change password' });
-        return;
-      }
 
       setPasswordData({
         currentPassword: "",
@@ -131,8 +119,6 @@ export default function EditProfile({
     } catch (error) {
       console.error('Password change error:', error);
       setErrors({ currentPassword: 'Failed to change password. Please try again.' });
-    } finally {
-      setPasswordLoading(false);
     }
   };
 
@@ -188,7 +174,7 @@ export default function EditProfile({
 
   if (!isOpen) return null;
 
-  const isLoading = activeTab === "profile" ? isSaving : passwordLoading;
+  const isLoading = activeTab === "profile" ? isSaving : changingPassword;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import CreateCategoryModal from "./create-category";
 import { Plus } from "lucide-react";
+import { usePaginatedCategories } from "@/hooks/use-categories";
 
 const PAGE_LIMIT = 9;
 
@@ -19,28 +20,9 @@ export default function CategoryGrid({
   const router = useRouter();
   const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  // Pagination state for "All Categories" (no limit)
-  const [categories, setCategories] = useState(initialCategories);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
 
-  // Fetch paginated categories only if not limited (All Categories view)
-  useEffect(() => {
-    if (limit) return;
-    const fetchCategories = async () => {
-      setLoading(true);
-      const res = await fetch(`/api/category?page=${page}&limit=${PAGE_LIMIT}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data.categories || []);
-        setTotal(data.pagination?.total || 0);
-      }
-      setLoading(false);
-    };
-    fetchCategories();
-  }, [page, onCategoryCreated, limit]);
+  const { categories, pagination, loading, refreshCategories } = usePaginatedCategories(page, PAGE_LIMIT);
 
   // For dashboard homepage: randomize and limit to 6, no pagination
   const displayCategories = limit
@@ -51,7 +33,13 @@ export default function CategoryGrid({
     router.push(`/category?id=${categoryId}`);
   };
 
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
+  const totalPages = Math.ceil(pagination.total / PAGE_LIMIT);
+
+  useEffect(() => {
+    if (onCategoryCreated) {
+      refreshCategories();
+    }
+  }, [onCategoryCreated, refreshCategories]);
 
   if (!displayCategories.length && !loading) {
     return (

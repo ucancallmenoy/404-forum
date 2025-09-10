@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useUserProfile } from "@/hooks/use-user-profile";
@@ -8,11 +8,16 @@ import { useUserPosts } from "@/hooks/use-user-posts";
 import { UserProfile } from "@/types/users";
 import UserProfileCard from "@/components/profile/user-profile-card";
 import EditProfile from "@/components/profile/edit-profile";
+import UserComments from "@/components/profile/user-comments";
 import UserPosts from "@/components/profile/user-posts";
 import UserCategories from "@/components/profile/user-categories";
-import { Calendar, Cake, Award, TrendingUp, MessageCircle, User } from "lucide-react";
+import { Calendar, Cake, Award, TrendingUp, User } from "lucide-react";
 import Image from "next/image";
 import { Category } from "@/types/category";
+import { useUserComments } from "@/hooks/use-user-comments";
+import { useFollowing } from "@/hooks/use-following"
+import { useRouter } from "next/navigation";
+import { useFollowers } from "@/hooks/use-followers";
 
 export default function ProfilePage() {
   const params = useSearchParams();
@@ -30,10 +35,20 @@ export default function ProfilePage() {
   } = useUserProfile(userId || user?.id);
   
   const { postsCount, loading: postsLoading } = useUserPosts(userId || user?.id);
-  
+  const { commentsCount, loading: commentsLoading } = useUserComments(userId || user?.id);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("Overview");
+  const router = useRouter();
+
+  const { follow, unfollow, following, unfollowing, followedUsers } = useFollowing(user?.id);
+  const { followersCount, loading: followersLoading } = useFollowers(profile?.id);
+  const [isFollowing, setIsFollowing] = useState(false);
+  useEffect(() => {
+    if (profile?.id && followedUsers.length > 0) {
+      setIsFollowing(followedUsers.some(followed => followed.id === profile.id));
+    }
+  }, [profile?.id, followedUsers]);
 
   const handleEditProfile = () => {
     setIsEditModalOpen(true);
@@ -70,6 +85,25 @@ export default function ProfilePage() {
       alert("Failed to upload profile picture. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!user?.id || !profile?.id) {
+      router.push("/auth/login");
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        await unfollow({ followedUserId: profile.id });
+        setIsFollowing(false);
+      } else {
+        await follow({ followedUserId: profile.id });
+        setIsFollowing(true);
+      }
+    } catch (error) {
+      console.error("Failed to toggle follow:", error);
     }
   };
 
@@ -196,14 +230,29 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Action Buttons */}
-                {viewingOwnProfile && (
-                  <button
-                    onClick={handleEditProfile}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                  >
-                    Edit Profile
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {!viewingOwnProfile && user && (
+                    <button
+                      onClick={handleFollowToggle}
+                      disabled={following || unfollowing}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        isFollowing
+                          ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      {following ? "Following..." : unfollowing ? "Unfollowing..." : isFollowing ? "Unfollow" : "Follow"}
+                    </button>
+                  )}
+                  {viewingOwnProfile && (
+                    <button
+                      onClick={handleEditProfile}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      Edit Profile
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -229,6 +278,11 @@ export default function ProfilePage() {
                     {tab === "Posts" && postsCount > 0 && (
                       <span className="ml-1 text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
                         {postsCount}
+                      </span>
+                    )}
+                    {tab === "Comments" && commentsCount > 0 && (
+                      <span className="ml-1 text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+                        {commentsCount}
                       </span>
                     )}
                   </button>
@@ -291,11 +345,8 @@ export default function ProfilePage() {
                 <UserPosts userId={profile.id} />
               )}
               
-              {activeTab === "Comments" && (
-                <div className="p-8 text-center text-gray-500">
-                  <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>Comments feature coming soon!</p>
-                </div>
+              {activeTab === "Comments" && profile?.id && (
+                <UserComments userId={profile.id} />
               )}
               
               {activeTab === "Categories" && (
@@ -322,6 +373,16 @@ export default function ProfilePage() {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Followers</span>
+                  <span className="font-semibold text-gray-900">
+                    {followersLoading ? (
+                      <div className="w-6 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    ) : (
+                      followersCount
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Categories Created</span>
                   <span className="font-semibold text-gray-900">{userCategories.length}</span>
                 </div>
@@ -337,7 +398,13 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Comments</span>
-                  <span className="font-semibold text-gray-900">0</span>
+                  <span className="font-semibold text-gray-900">
+                    {commentsLoading ? (
+                      <div className="w-6 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    ) : (
+                      commentsCount
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
