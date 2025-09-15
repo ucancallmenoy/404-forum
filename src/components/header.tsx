@@ -71,14 +71,6 @@ export default function Header() {
     setShowTopicModal(true);
   };
 
-  const handleSubscribe = () => {
-    if (!user) {
-      window.location.href = "/auth/login";
-      return;
-    }
-    alert("Subscribed!");
-  };
-
   const handleSubmitTopic = async (form: {
     title: string;
     content: string;
@@ -229,12 +221,6 @@ export default function Header() {
           <p className="text-sm text-gray-600">Join discussions with other developers</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            className="px-3 py-1 text-sm text-gray-600 hover:text-blue-600"
-            onClick={handleSubscribe}
-          >
-            Subscribe
-          </button>
           <button 
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer"
             onClick={handleCreateTopic}

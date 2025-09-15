@@ -71,17 +71,28 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
   };
 
   const handleShare = async () => {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
     const url = `${window.location.origin}/topic?id=${topic.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard!");
-    } catch (error) {
-      console.error("Failed to copy link:", error);
-      alert("Failed to copy link. Please copy manually: " + url);
+    const title = topic.title;
+    const text = `Check out this topic: ${topic.title}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+      } catch (error) {
+        console.error("Share failed:", error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied to clipboard!"); 
+      } catch (error) {
+        console.error("Failed to copy link:", error);
+        alert("Failed to copy link. Please copy manually: " + url);
+      }
     }
   };
 
@@ -119,7 +130,7 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
         <div className="flex flex-col items-center p-3 w-14 bg-gray-50 rounded-l">
           <button
             onClick={handleLike}
-            className={`p-2 rounded hover:bg-gray-200 transition-colors ${
+            className={`p-2 rounded hover:bg-gray-200 transition-colors cursor-pointer ${
               isLiked ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'
             }`}
             disabled={likeLoading}
@@ -192,20 +203,20 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
           {/* Action Bar */}
           <div className="flex items-center gap-6 text-sm text-gray-600">
             <button 
-              className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
               onClick={handleComments}
             >
               <MessageSquare size={18} />
               <span>Comments</span>
             </button>
             <button 
-              className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
               onClick={handleShare}
             >
               <Share size={18} />
               <span>Share</span>
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors">
+            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors cursor-pointer">
               <BookmarkPlus size={18} />
               <span>Save</span>
             </button>
@@ -213,7 +224,7 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
             {currentUserId === topic.author_id && (
               <div className="flex items-center gap-3 ml-auto">
                 <button
-                  className="text-red-500 px-3 py-2 rounded hover:bg-red-50 transition-colors"
+                  className="text-red-500 px-3 py-2 rounded hover:bg-red-50 transition-colors cursor-pointer"
                   onClick={handleDelete}
                   disabled={deleting}
                 >

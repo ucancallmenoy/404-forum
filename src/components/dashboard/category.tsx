@@ -85,7 +85,7 @@ export default function CategoryGrid({
           {user && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm cursor-pointer"
             >
               <Plus size={16} />
               Create Category
@@ -140,7 +140,7 @@ export default function CategoryGrid({
       {!limit && (
         <div className="flex justify-center gap-4 mt-8">
           <button
-            className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
+            className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50 cursor-pointer"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1 || loading}
           >
@@ -150,7 +150,7 @@ export default function CategoryGrid({
             Page {page} of {totalPages || 1}
           </span>
           <button
-            className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
+            className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50 cursor-pointer"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages || loading}
           >

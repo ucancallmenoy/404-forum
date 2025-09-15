@@ -23,7 +23,7 @@ export default function ForumSidebar({ categories }: ForumSidebarProps) {
               <button
                 key={category.id}
                 type="button"
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition group w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition group w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                 onClick={() => {
                   router.push(`/category?id=${category.id}`);
                 }}

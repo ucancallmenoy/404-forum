@@ -13,20 +13,20 @@ export async function GET(request: Request) {
   const supabase = await createClient();
 
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!isFollowers) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      }
     }
 
     let query;
     if (isFollowers) {
-      // Fetch users who follow the specified userId
       query = supabase
         .from("follows")
         .select("follower_id")
         .eq("followed_id", userId);
     } else {
-      // Fetch users that the specified userId is following
       query = supabase
         .from("follows")
         .select("followed_id")
@@ -40,26 +40,24 @@ export async function GET(request: Request) {
     }
 
     if (isFollowers) {
-        // For followers, return the count
-        return NextResponse.json({ count: data?.length || 0 });
-        } else {
-        // For following, fetch user profiles
-        if (data && data.length > 0) {
-            const followedIds = (data as { followed_id: string }[]).map((f) => f.followed_id);
-            const { data: profiles, error: profileError } = await supabase
-            .from("users")
-            .select("id, email, first_name, last_name, profile_picture, bio, created_at")
-            .in("id", followedIds);
+      return NextResponse.json({ count: data?.length || 0 });
+    } else {
+      if (data && data.length > 0) {
+        const followedIds = (data as { followed_id: string }[]).map((f) => f.followed_id);
+        const { data: profiles, error: profileError } = await supabase
+          .from("users")
+          .select("id, email, first_name, last_name, profile_picture, bio, created_at")
+          .in("id", followedIds);
 
-            if (profileError) {
-            console.error("Profile fetch error:", profileError);
-            return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
-            }
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          return NextResponse.json({ error: "Failed to fetch profiles" }, { status: 500 });
+        }
 
-            return NextResponse.json(profiles || []);
-        }
-        return NextResponse.json([]);
-        }
+        return NextResponse.json(profiles || []);
+      }
+      return NextResponse.json([]);
+    }
   } catch (error) {
     console.error("Unexpected error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

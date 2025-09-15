@@ -263,7 +263,7 @@ export default function ProfilePage() {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`py-4 border-b-2 font-medium text-sm transition-colors ${
+                    className={`py-4 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
                       activeTab === tab
                         ? "border-blue-500 text-blue-600"
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -331,7 +331,7 @@ export default function ProfilePage() {
                       {userCategories.length > 4 && (
                         <button
                           onClick={() => setActiveTab("Categories")}
-                          className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
                         >
                           View all {userCategories.length} categories →
                         </button>

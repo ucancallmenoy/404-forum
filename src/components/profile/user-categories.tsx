@@ -26,7 +26,7 @@ export default function UserCategories({ categories }: UserCategoriesProps) {
           <button
             key={category.id}
             onClick={() => router.push(`/category?id=${category.id}`)}
-            className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left group"
+            className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left group cursor-pointer"
           >
             <div
               className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold text-white shadow-sm"

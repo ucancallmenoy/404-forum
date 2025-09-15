@@ -26,7 +26,7 @@ const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: s
     <div className="flex items-start gap-3 mb-2 w-full">
       <button
         type="button"
-        className="focus:outline-none"
+        className="focus:outline-none cursor-pointer"
         onClick={handleProfileClick}
         title={displayName ? `View profile of ${displayName}` : ''}
       >
@@ -47,7 +47,7 @@ const AuthorBlock = memo(function AuthorBlock({ userId, createdAt }: { userId: s
       <div className="flex flex-col">
         <button
           type="button"
-          className="text-base font-semibold text-gray-900 text-left hover:underline focus:outline-none"
+          className="text-base font-semibold text-gray-900 text-left hover:underline focus:outline-none cursor-pointer"
           onClick={handleProfileClick}
         >
           {displayName}

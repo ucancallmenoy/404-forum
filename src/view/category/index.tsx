@@ -33,7 +33,7 @@ export default function CategoryPage() {
     <div className="max-w-4xl mx-auto py-8">
       <button
         onClick={() => router.back()}
-        className="mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+        className="mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors cursor-pointer"
       >
         ← Back
       </button>

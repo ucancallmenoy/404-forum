@@ -51,6 +51,10 @@ export default function PostPage() {
   }, [topic?.id, user?.id]);
 
   useEffect(() => {
+    setLikesCount(topic?.likes ?? 0);
+  }, [topic?.likes]);
+
+  useEffect(() => {
     if (window.location.hash === '#comments' && user) {
       setShowCommentBox(true);
     }
@@ -78,6 +82,32 @@ export default function PostPage() {
       queryClient.invalidateQueries({ queryKey: ['comments', topicId] });
     } else {
       setError("Failed to post comment.");
+    }
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/topic?id=${topicId}`;
+    const title = topic?.title || "Topic";
+    const text = `Check out this topic: ${title}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+      } catch (error) {
+        console.error("Share failed:", error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("Link copied to clipboard!"); 
+      } catch (error) {
+        console.error("Failed to copy link:", error);
+        alert("Failed to copy link. Please copy manually: " + url);
+      }
     }
   };
 
@@ -154,7 +184,7 @@ export default function PostPage() {
     <div className="max-w-4xl mx-auto p-6">
       <button
         onClick={() => router.back()}
-        className="mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+        className="mb-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors cursor-pointer"
       >
         ← Back
       </button>
@@ -188,7 +218,7 @@ export default function PostPage() {
             <div className="flex flex-col items-center p-2 w-12 rounded-l">
               <button
                 onClick={handleLikeToggle}
-                className={`p-1 rounded hover:bg-gray-200 transition-colors ${
+                className={`p-1 rounded hover:bg-gray-200 transition-colors cursor-pointer ${
                   liked ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'
                 }`}
                 disabled={liking}
@@ -244,18 +274,21 @@ export default function PostPage() {
               <div className="flex items-center gap-4 mb-6">
                 <button 
                   onClick={() => user ? setShowCommentBox(!showCommentBox) : router.push("/auth/login")}
-                  className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100"
+                  className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
                 >
                   <MessageSquare size={16} />
                   <span className="text-sm font-medium">Comments</span>
                 </button>
-                <button className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100">
+                <button 
+                  className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
+                  onClick={handleShare}
+                >
                   <Share size={16} />
                   <span className="text-sm font-medium">Share</span>
                 </button>
                 <button 
                   onClick={() => setSaved(!saved)}
-                  className={`flex items-center gap-2 transition-colors px-2 py-1 rounded hover:bg-gray-100 ${
+                  className={`flex items-center gap-2 transition-colors px-2 py-1 rounded hover:bg-gray-100 cursor-pointer ${
                     saved ? 'text-yellow-500' : 'text-gray-500 hover:text-gray-900'
                   }`}
                 >
@@ -290,13 +323,13 @@ export default function PostPage() {
                         <button
                           type="button"
                           onClick={() => setShowCommentBox(false)}
-                          className="px-4 py-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100"
+                          className="px-4 py-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors rounded-full hover:bg-gray-100 cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          className="px-6 py-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-6 py-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-full cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={posting || !comment.trim()}
                         >
                           {posting ? "Commenting..." : "Comment"}

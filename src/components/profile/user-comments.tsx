@@ -54,7 +54,7 @@ export default function UserComments({ userId }: UserCommentsProps) {
                     <span>Commented on</span>
                     <button
                       onClick={() => router.push(`/topic?id=${comment.topic_id}`)}
-                      className="text-blue-600 hover:underline font-medium truncate"
+                      className="text-blue-600 hover:underline font-medium truncate cursor-pointer"
                     >
                       {topic?.title || "Unknown Topic"}
                     </button>
