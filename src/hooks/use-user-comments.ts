@@ -17,7 +17,9 @@ export function useUserComments(userId?: string) {
       const res = await fetch(`/api/post?authorId=${userId}&limit=1000&page=1`);
       if (!res.ok) throw new Error("Failed to fetch user comments");
       const data = await res.json();
-      const comments = Array.isArray(data) ? data : data.posts ?? [];
+      const rawComments = Array.isArray(data) ? data : data.posts ?? [];
+      // Filter comments by author_id to ensure only the correct user's comments are shown
+      const comments = rawComments.filter((comment: Post) => comment.author_id === userId);
 
       // Fetch topic details
       const topicIds = [...new Set(comments.map((comment: Post) => comment.topic_id))];
