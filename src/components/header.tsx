@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/auth-context";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useUserProfile } from "@/hooks/use-user-profile";
-import { Home, Plus, FolderPlus } from "lucide-react";
+import { Home, Plus, FolderPlus, Search } from "lucide-react";
 import CreateCategoryModal from "@/components/dashboard/create-category";
 import ForumCreateTopicModal from "@/components/dashboard/create-topic";
 import { useCategories } from "@/hooks/use-categories";
@@ -28,6 +28,7 @@ export default function Header() {
 
   const { categories, refreshCategories } = useCategories();
   const { createTopic } = useCreateTopic();
+  const [searchHovered, setSearchHovered] = useState(false);
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -131,6 +132,32 @@ export default function Header() {
                 className="absolute right-0 top-full mt-2 px-3 py-2 text-xs bg-black text-white rounded-lg shadow-lg z-10 border border-gray-200 pointer-events-none min-w-[120px] max-w-[180px] whitespace-nowrap"
               >
                 <span className="block w-full text-center">Go to homepage</span>
+                <span
+                  className="absolute right-4 -top-2 w-0 h-0"
+                  style={{
+                    borderLeft: '8px solid transparent',
+                    borderRight: '8px solid transparent',
+                    borderBottom: '8px solid black',
+                  }}
+                />
+              </span>
+            )}
+          </div>
+          <div className="relative">
+            <Link
+              href="/search"
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+              onMouseEnter={() => setSearchHovered(true)}
+              onMouseLeave={() => setSearchHovered(false)}
+              aria-label="Search"
+            >
+              <Search className="w-6 h-6 text-[var(--foreground)]" />
+            </Link>
+            {searchHovered && (
+              <span
+                className="absolute right-0 top-full mt-2 px-3 py-2 text-xs bg-black text-white rounded-lg shadow-lg z-10 border border-gray-200 pointer-events-none min-w-[120px] max-w-[180px] whitespace-nowrap"
+              >
+                <span className="block w-full text-center">Search</span>
                 <span
                   className="absolute right-4 -top-2 w-0 h-0"
                   style={{
