@@ -16,6 +16,8 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
   const { getUserFromCache } = useUserCache();
   const { user } = useAuth();
   const authorProfile = getUserFromCache(topic.author_id);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     const fetchLikeStatus = async () => {
@@ -30,6 +32,21 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
       setIsLiked(!!data);
     };
     fetchLikeStatus();
+  }, [topic?.id, user?.id]);
+
+  useEffect(() => {
+    const fetchSaveStatus = async () => {
+      if (!topic?.id || !user?.id) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("saved_topics")
+        .select("id")
+        .eq("topic_id", topic.id)
+        .eq("user_id", user.id)
+        .single();
+      setIsSaved(!!data);
+    };
+    fetchSaveStatus();
   }, [topic?.id, user?.id]);
 
   const handleLike = async () => {
@@ -93,6 +110,34 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
         console.error("Failed to copy link:", error);
         alert("Failed to copy link. Please copy manually: " + url);
       }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) {
+      router.push("/auth/login");
+      return;
+    }
+    
+    if (saveLoading) return;
+    
+    setSaveLoading(true);
+    try {
+      const response = await fetch("/api/saved-topics", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "toggle_save",
+          topicId: topic.id,
+          userId: user.id,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setIsSaved(data.saved);
+      }
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -216,9 +261,15 @@ const TopicItem = memo(function TopicItem({ topic, onAuthorClick, currentUserId,
               <Share size={18} />
               <span>Share</span>
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors cursor-pointer">
-              <BookmarkPlus size={18} />
-              <span>Save</span>
+            <button 
+              className={`flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 transition-colors cursor-pointer ${
+                isSaved ? 'text-blue-500' : 'text-gray-600'
+              }`}
+              onClick={handleSave}
+              disabled={saveLoading}
+            >
+              <BookmarkPlus size={18} fill={isSaved ? 'currentColor' : 'none'} />
+              <span>{saveLoading ? 'Saving...' : 'Save'}</span>
             </button>
 
             {currentUserId === topic.author_id && (

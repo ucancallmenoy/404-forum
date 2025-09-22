@@ -8,7 +8,8 @@ export default function ForumNavigation({
   searchQuery,
   setSearchQuery
 }: ForumNavigationProps) {
-  const tabs = ['All Topics', 'Categories', 'Following', 'My Topics'];
+  const tabs = ['All Topics', 'Categories', 'Following', 'My Topics', 'Saved']; 
+
 
   return (
     <div className="bg-white border-b border-gray-200 px-6">

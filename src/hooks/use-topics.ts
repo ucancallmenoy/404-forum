@@ -70,7 +70,6 @@ export function useTopics(categoryId?: string, authorId?: string) {
   };
 }
 
-// Fisher-Yates shuffle
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -89,7 +88,6 @@ export function useForYouTopics() {
     if (!res.ok) throw new Error('Failed to fetch topics');
     const data = await res.json();
     const newTopics: Topic[] = Array.isArray(data) ? data : data.topics || [];
-    // Prefetch authors
     const uniqueAuthorIds = [...new Set(newTopics.map(t => t.author_id))];
     uniqueAuthorIds.forEach(id => fetchAndCacheUser(id));
     return {
@@ -212,5 +210,44 @@ export function useTopic(topicId?: string) {
     deleting: deleteTopicMutation.isPending,
     toggleLike: toggleLikeMutation.mutateAsync,
     liking: toggleLikeMutation.isPending,
+  };
+}
+
+export function useSavedTopics(userId?: string) {
+  const queryClient = useQueryClient();
+  const { getUsers } = useUserCache();
+
+  const {
+    data,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['saved-topics', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const res = await fetch(`/api/saved-topics?userId=${userId}`);
+      if (!res.ok) throw new Error("Failed to fetch saved topics");
+      const data = await res.json();
+      const topics = Array.isArray(data) ? data : data.topics ?? [];
+      const authorIds = [...new Set(topics.map((t: Topic) => t.author_id))] as string[];
+      if (authorIds.length > 0) {
+        await getUsers(authorIds);
+      }
+      return topics;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2, 
+  });
+
+  const setSavedTopics = (newTopics: Topic[]) => {
+    queryClient.setQueryData(['saved-topics', userId], newTopics);
+  };
+
+  return {
+    savedTopics: data ?? [],
+    loading: isLoading,
+    savedCount: data ? data.length : 0,
+    setSavedTopics,
+    refresh: refetch,
   };
 }

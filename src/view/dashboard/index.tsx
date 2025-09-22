@@ -12,6 +12,7 @@ import ForumCreateTopicModal from "@/components/dashboard/create-topic";
 import ForYouList from "@/components/dashboard/for-you";
 import { useUserPosts } from "@/hooks/use-user-posts";
 import Following from "@/components/dashboard/following";
+import Saved from "@/components/dashboard/saved";
 
 export default function ForumDashboard() {
   const { user, loading } = useAuth();
@@ -73,6 +74,10 @@ export default function ForumDashboard() {
     router.push(`/profile?id=${authorId}`);
   };
 
+  const handleTopicClick = (topicId: string) => {
+    router.push(`/topic?id=${topicId}`);
+  };
+
   const handleRefresh = () => {
     refreshTopics();
   };
@@ -112,6 +117,15 @@ export default function ForumDashboard() {
             currentUserId={user?.id}
             title="My Topics"
             maxItems={Infinity} // Show all user topics
+          />
+        );
+      case 'Saved':
+        return (
+          <Saved
+            onTopicClick={handleTopicClick}
+            onAuthorClick={handleAuthorClick}
+            onRefresh={handleRefresh}
+            currentUserId={user?.id}
           />
         );
       default: // 'All Topics'
